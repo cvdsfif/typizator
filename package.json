@@ -1,13 +1,12 @@
 {
   "name": "typizator",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.4",
   "description": "Runtime types and metadata schemas for Typescript",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
-    "badges"
+    "dist"
   ],
   "scripts": {
     "build": "rm -rf dist && node build.js && tsc --emitDeclarationOnly",
