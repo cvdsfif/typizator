@@ -1,0 +1,1 @@
+export const always = <Sources>(source: Sources) => true;
