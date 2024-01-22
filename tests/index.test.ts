@@ -1,4 +1,4 @@
-import { FieldMissingError, IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, NullNotAllowedError, always, arrayS, bigintS, boolS, dateS, floatS, intS, objectS, stringS } from "../src";
+import { ApiImplementation, ApiMetadata, ArrayMetadata, FieldMissingError, FunctionMetadata, IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, NullNotAllowedError, ObjectMetadata, always, apiS, arrayS, bigintS, boolS, dateS, floatS, intS, objectS, stringS } from "../src";
 
 describe("Testing type unboxing", () => {
 
@@ -235,21 +235,58 @@ describe("Testing type unboxing", () => {
             floatField: floatS
         });
         console.log(simpleRecordS.metadata);
-        expect(simpleRecordS.metadata().schemaType).toEqual("object");
-        expect(simpleRecordS.metadata().schemaFields.length).toEqual(6);
-        expect(simpleRecordS.metadata().schemaFields[0].key).toEqual("id");
-        expect(simpleRecordS.metadata().schemaFields[0].schema.metadata().schemaType).toEqual("bigint");
-        expect(simpleRecordS.metadata().schemaFields[0].schema.metadata().schemaFields.length).toEqual(0);
-        expect(simpleRecordS.metadata().schemaFields[0].schema.metadata().notNull).toBeTruthy();
-        expect(simpleRecordS.metadata().schemaFields[1].schema.metadata().notNull).toBeFalsy();
-        expect(simpleRecordS.metadata().schemaFields[2].schema.metadata().optional).toBeTruthy();
-        expect(simpleRecordS.metadata().schemaFields[3].schema.metadata().schemaType).toEqual("date");
-        expect(simpleRecordS.metadata().schemaFields[4].schema.metadata().schemaType).toEqual("bool");
-        expect(simpleRecordS.metadata().schemaFields[5].schema.metadata().schemaType).toEqual("float");
+        expect(simpleRecordS.metadata.dataType).toEqual("object");
+        const fieldsMetadata = simpleRecordS.metadata as ObjectMetadata;
+        expect(fieldsMetadata.fields.size).toEqual(6);
+        expect(fieldsMetadata.fields.get("id")?.metadata.dataType).toEqual("bigint");
+        expect(fieldsMetadata.fields.get("id")?.metadata.notNull).toBeTruthy();
+        expect(fieldsMetadata.fields.get("name")?.metadata.notNull).toBeFalsy();
+        expect(fieldsMetadata.fields.get("opt")?.metadata.optional).toBeTruthy();
+        expect(fieldsMetadata.fields.get("dateField")?.metadata.dataType).toEqual("date");
+        expect(fieldsMetadata.fields.get("boolField")?.metadata.dataType).toEqual("bool");
+        expect(fieldsMetadata.fields.get("floatField")?.metadata.dataType).toEqual("float");
         const simpleArrayS = arrayS(simpleRecordS);
-        expect(simpleArrayS.metadata().schemaType).toEqual("array");
-        expect(simpleArrayS.metadata().schemaFields.length).toEqual(1);
-        expect(simpleArrayS.metadata().schemaFields[0].key).toEqual("[]");
-        expect(simpleArrayS.metadata().schemaFields[0].schema.metadata().schemaType).toEqual("object");
+        expect(simpleArrayS.metadata.dataType).toEqual("array");
+        expect((simpleArrayS.metadata as ArrayMetadata).elements.metadata.dataType).toEqual("object");
+    });
+
+    test("Implement and call API", async () => {
+        const simpleApiS = apiS({
+            meow: { args: [], retVal: stringS.notNull },
+            noMeow: { args: [] },
+            helloWorld: { args: [stringS.notNull, bigintS.notNull], retVal: stringS.notNull },
+            cruel: {
+                world: { args: [stringS.notNull], retVal: stringS.notNull }
+            }
+        });
+
+        let isMeow = true;
+        const implementation = {
+            meow: async () => Promise.resolve("Miaou!"),
+            noMeow: async () => { isMeow = false; Promise.resolve(); },
+            helloWorld: async (name: string, id: bigint) => Promise.resolve(`Hello ${name}, your id is ${id + 1n}`),
+            cruel: {
+                world: async (val: string) => Promise.resolve(`${val}, this world is cruel`)
+            }
+        };
+        const caller: ApiImplementation<typeof simpleApiS> = implementation;
+
+        expect(await caller.meow()).toEqual("Miaou!");
+        await caller.noMeow();
+        expect(isMeow).toBeFalsy();
+        expect(await caller.helloWorld("test", 12345678901234567890n))
+            .toEqual("Hello test, your id is 12345678901234567891");
+        expect(await caller.cruel.world("Oyvey")).toEqual("Oyvey, this world is cruel");
+
+        expect(simpleApiS.metadata.dataType).toEqual("api");
+        const helloWorld = simpleApiS.metadata.members.get("helloWorld") as FunctionMetadata;
+        expect(helloWorld.dataType).toEqual("function");
+        expect(helloWorld.args[0].metadata.dataType).toEqual("string");
+        expect(helloWorld.args[1].metadata.dataType).toEqual("bigint");
+        expect(helloWorld.args[1].unbox("42")).toEqual(42n);
+        expect(helloWorld.retVal.metadata.dataType).toEqual("string");
+        expect(simpleApiS.metadata.members.get("cruel")?.dataType).toEqual("api");
+        const subApiData = simpleApiS.metadata.members.get("cruel") as ApiMetadata;
+        expect(subApiData.members.get("world")?.dataType).toEqual("function");
     });
 });
