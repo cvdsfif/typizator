@@ -18,10 +18,10 @@ export type ApiMetadata = {
     members: Map<String, FunctionMetadata | ApiMetadata>
 }
 
-export type ApiSchema<T extends ApiDefinition> = {
+export type ApiSchema = {
     get metadata(): ApiMetadata
 }
-class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
+class ApiS<T extends ApiDefinition> implements ApiSchema {
     private readonly _metadata: ApiMetadata;
     public get metadata() { return this._metadata; }
     private extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata => {
@@ -30,7 +30,7 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
             const field = definition[key];
             result.set(
                 key,
-                typeof field.args === "object" && typeof field.retVal === "object" ?
+                typeof field.args === "object" ?
                     {
                         dataType: "function",
                         args: field.args,
