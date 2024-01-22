@@ -18,7 +18,10 @@ export type ApiMetadata = {
     members: Map<String, FunctionMetadata | ApiMetadata>
 }
 
-class ApiS<T extends ApiDefinition> {
+export type ApiSchema<T extends ApiDefinition> = {
+    get metadata(): ApiMetadata
+}
+class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
     private readonly _metadata: ApiMetadata;
     public get metadata() { return this._metadata; }
     private extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata => {
