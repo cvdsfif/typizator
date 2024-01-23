@@ -57,7 +57,7 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
 }
 export const apiS = <T extends ApiDefinition>(definition: T) => new ApiS(definition);
 
-type InferArguments<T extends [...any]> =
+export type InferArguments<T extends [...any]> =
     T extends [...infer P] ? { [K in keyof P]: P[K] extends Schema<any, any, any> ? InferTargetFromSchema<P[K]> : never } : never;
 export type InferTargetFromSchema0<T> =
     T extends NotNullFacade<infer Target, any> ? Target :
