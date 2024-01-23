@@ -290,5 +290,6 @@ describe("Testing type unboxing", () => {
         const subApiData = simpleApiS.metadata.members.get("cruel") as ApiMetadata<typeof cruelApi>;
         expect(subApiData.members.get("world")?.dataType).toEqual("function");
         expect((simpleApiS.metadata.members.get("noMeow") as FunctionMetadata).dataType).toEqual("function");
+        expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string");
     });
 });

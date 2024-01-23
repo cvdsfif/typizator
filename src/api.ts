@@ -13,9 +13,14 @@ export type FunctionMetadata = {
 export type ApiDefinition = {
     [K: string]: FunctionCallDefinition | ApiDefinition
 }
+export type MetadataMembersImplementation<T extends ApiDefinition> = {
+    [K in keyof T]:
+    T[K] extends ApiDefinition ? MetadataMembersImplementation<T[K]> : T[K]
+}
 export type ApiMetadata<T extends ApiDefinition> = {
     dataType: "api",
-    members: Map<keyof T, FunctionMetadata | ApiMetadata<any>>
+    members: Map<keyof T, FunctionMetadata | ApiMetadata<any>>,
+    implementation: MetadataMembersImplementation<T>
 }
 
 export type ApiSchema<T extends ApiDefinition> = {
@@ -25,26 +30,30 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
     private readonly _metadata: ApiMetadata<T>;
     public get metadata() { return this._metadata; }
     private extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata<D> => {
-        const result = new Map<keyof D, FunctionMetadata | ApiMetadata<D>>();
+        const result = new Map<keyof D, FunctionMetadata | ApiMetadata<ApiDefinition>>();
+        const impl = {} as MetadataMembersImplementation<D>;
         Object.keys(definition).forEach(key => {
             const field = definition[key];
-            result.set(
-                key,
-                typeof field.args === "object" ?
-                    {
-                        dataType: "function",
-                        args: field.args,
-                        retVal: field.retVal
-                    } as FunctionMetadata :
-                    this.extractMetadata(field as ApiDefinition)
-            );
+            if (typeof field.args === "object") {
+                result.set(key, {
+                    dataType: "function",
+                    args: field.args,
+                    retVal: field.retVal
+                } as FunctionMetadata);
+                (impl as any)[key] = definition[key];
+            } else {
+                const child = this.extractMetadata(field as ApiDefinition);
+                result.set(key, child);
+                (impl as any)[key] = child.implementation;
+            }
         });
         return ({
             dataType: "api",
-            members: result
+            members: result,
+            implementation: impl
         });
     }
-    constructor(private definition: T) { this._metadata = this.extractMetadata(definition); }
+    constructor(definition: T) { this._metadata = this.extractMetadata(definition); }
 }
 export const apiS = <T extends ApiDefinition>(definition: T) => new ApiS(definition);
 
