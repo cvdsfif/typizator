@@ -13,19 +13,19 @@ export type FunctionMetadata = {
 export type ApiDefinition = {
     [K: string]: FunctionCallDefinition | ApiDefinition
 }
-export type ApiMetadata = {
+export type ApiMetadata<T extends ApiDefinition> = {
     dataType: "api",
-    members: Map<String, FunctionMetadata | ApiMetadata>
+    members: Map<keyof T, FunctionMetadata | ApiMetadata<any>>
 }
 
-export type ApiSchema = {
-    get metadata(): ApiMetadata
+export type ApiSchema<T extends ApiDefinition> = {
+    get metadata(): ApiMetadata<T>
 }
-class ApiS<T extends ApiDefinition> implements ApiSchema {
-    private readonly _metadata: ApiMetadata;
+class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
+    private readonly _metadata: ApiMetadata<T>;
     public get metadata() { return this._metadata; }
-    private extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata => {
-        const result = new Map<String, FunctionMetadata | ApiMetadata>();
+    private extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata<D> => {
+        const result = new Map<keyof D, FunctionMetadata | ApiMetadata<D>>();
         Object.keys(definition).forEach(key => {
             const field = definition[key];
             result.set(
