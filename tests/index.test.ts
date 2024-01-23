@@ -251,13 +251,14 @@ describe("Testing type unboxing", () => {
     });
 
     test("Implement and call API", async () => {
+        const cruelApi = {
+            world: { args: [stringS.notNull], retVal: stringS.notNull }
+        };
         const simpleApiS = apiS({
             meow: { args: [], retVal: stringS.notNull },
             noMeow: { args: [] },
             helloWorld: { args: [stringS.notNull, bigintS.notNull], retVal: stringS.notNull },
-            cruel: {
-                world: { args: [stringS.notNull], retVal: stringS.notNull }
-            }
+            cruel: cruelApi
         });
 
         let isMeow = true;
@@ -286,7 +287,7 @@ describe("Testing type unboxing", () => {
         expect(helloWorld.args[1].unbox("42")).toEqual(42n);
         expect(helloWorld.retVal.metadata.dataType).toEqual("string");
         expect(simpleApiS.metadata.members.get("cruel")?.dataType).toEqual("api");
-        const subApiData = simpleApiS.metadata.members.get("cruel") as ApiMetadata;
+        const subApiData = simpleApiS.metadata.members.get("cruel") as ApiMetadata<typeof cruelApi>;
         expect(subApiData.members.get("world")?.dataType).toEqual("function");
         expect((simpleApiS.metadata.members.get("noMeow") as FunctionMetadata).dataType).toEqual("function");
     });
