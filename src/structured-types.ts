@@ -1,5 +1,5 @@
 import { JSONArrayNotFoundError } from "./errors";
-import { ArrayMetadata, ByDefaultFacade, NotNullFacade, ObjectMetadata, OptionalFacade, Schema, SchemaDefinition, TypeSchema, TypedMetadata } from "./schemas";
+import { ArrayMetadata, ByDefaultFacade, NotNullFacade, ObjectMetadata, OptionalFacade, Schema, SchemaDefinition, TypeSchema } from "./schemas";
 import { InferSourceFromSchema, InferTargetFromSchema, SchemaSource, SchemaTarget } from "./type-conversions";
 import JSONBig from "json-bigint";
 
@@ -11,7 +11,7 @@ class ObjectS<T extends SchemaDefinition> extends TypeSchema<SchemaTarget<T>, Sc
         super();
         this._metadata = {
             dataType: "object",
-            fields: new Map<String, Schema<any, any, any>>(),
+            fields: new Map<String, Schema>(),
             notNull: false,
             optional: false
         }
@@ -30,7 +30,7 @@ class ObjectS<T extends SchemaDefinition> extends TypeSchema<SchemaTarget<T>, Sc
 }
 export const objectS = <T extends SchemaDefinition>(definition: T) => new ObjectS(definition);
 
-class ArrayS<S extends Schema<any, any, any>>
+class ArrayS<S extends Schema>
     extends TypeSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string>
 {
     get metadata() {
@@ -54,5 +54,5 @@ class ArrayS<S extends Schema<any, any, any>>
     }
 }
 export const arrayS =
-    <S extends TypeSchema<any, any, any> | NotNullFacade<any, any> | OptionalFacade<any, any> | ByDefaultFacade<any, any, any>>
+    <S extends TypeSchema | NotNullFacade | OptionalFacade | ByDefaultFacade>
         (elements: S) => new ArrayS<S>(elements);

@@ -14,19 +14,19 @@ export interface TypedMetadata {
 }
 export interface ObjectMetadata extends TypedMetadata {
     dataType: "object",
-    fields: Map<String, Schema<any, any, any>>
+    fields: Map<String, Schema>
 }
 export interface ArrayMetadata extends TypedMetadata {
     dataType: "array",
-    elements: Schema<any, any, any>
+    elements: Schema
 }
 
-export type Schema<Target, Sources, B extends DefaultBehaviour> = {
+export type Schema<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour> = {
     get metadata(): TypedMetadata,
     unbox: (source: AllowNull<Sources, B>) => AllowNull<Target, B>;
 }
 
-export abstract class TypeSchema<Target, Sources, B extends DefaultBehaviour = { allowNull: true, optional: false }>
+export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultBehaviour = { allowNull: true, optional: false }>
     implements Schema<Target, Sources, B> {
     abstract get metadata(): TypedMetadata;
     protected abstract convert: (source: Sources) => Target
@@ -44,10 +44,10 @@ export abstract class TypeSchema<Target, Sources, B extends DefaultBehaviour = {
 }
 
 export type SchemaDefinition = {
-    [K: string]: Schema<any, any, any>
+    [K: string]: Schema
 }
 
-export class NotNullFacade<Target, Sources> implements Schema<Target, Sources, NotNull>{
+export class NotNullFacade<Target = any, Sources = any> implements Schema<Target, Sources, NotNull>{
     get metadata() {
         return {
             ...this.internal.metadata,
@@ -56,14 +56,14 @@ export class NotNullFacade<Target, Sources> implements Schema<Target, Sources, N
         }
     }
 
-    constructor(private internal: Schema<Target, Sources, any>) { }
+    constructor(private internal: Schema<Target, Sources>) { }
     unbox = (source: Sources): Target => {
         if (source === null) throw new NullNotAllowedError();
         return this.internal.unbox(source)!;
     }
 }
 
-export class OptionalFacade<Target, Sources> implements Schema<Target, Sources, Optional>{
+export class OptionalFacade<Target = any, Sources = any> implements Schema<Target, Sources, Optional>{
     get metadata() {
         return {
             ...this.internal.metadata,
@@ -71,14 +71,14 @@ export class OptionalFacade<Target, Sources> implements Schema<Target, Sources, 
             optional: true
         }
     }
-    constructor(private internal: Schema<Target, Sources, any>) { }
+    constructor(private internal: Schema<Target, Sources>) { }
     unbox = (source: Sources | null | undefined): Target | null | undefined => {
         if (source === undefined) return undefined;
         return this.internal.unbox(source as any);
     }
 }
 
-export class ByDefaultFacade<Target, Sources, B extends DefaultBehaviour> implements Schema<Target, Sources, B>{
+export class ByDefaultFacade<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour> implements Schema<Target, Sources, B>{
     get metadata() { return this.internal.metadata; }
     private targetCheck: (s: Sources) => Target;
     constructor(
