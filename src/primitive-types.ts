@@ -1,9 +1,7 @@
 import { IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError } from "./errors";
-import { TypeSchema, TypedMetadata } from "./schemas";
+import { PrimitiveSchemaTypes, TypeSchema, TypedMetadata } from "./schemas";
 
-type PrimitiveSchemaTypes = "string" | "int" | "float" | "bigint" | "bool" | "date";
 const defaultMetadata = (dataType: PrimitiveSchemaTypes) => ({ dataType, notNull: false, optional: false });
-
 class BigintS extends TypeSchema<bigint, bigint | number | string>{
     private _metadata = defaultMetadata("bigint");
     get metadata() { return this._metadata; }

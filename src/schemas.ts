@@ -5,10 +5,20 @@ interface NotNull extends DefaultBehaviour { allowNull: false }
 interface Optional extends DefaultBehaviour { optional: true, allowNull: true }
 type AllowNull<T, B extends DefaultBehaviour> = B extends NotNull ? T : B extends Optional ? T | null | undefined : T | null;
 
+export type PrimitiveSchemaTypes = "string" | "int" | "float" | "bigint" | "bool" | "date";
+export type MetadataTypes = PrimitiveSchemaTypes | "object" | "array";
 export interface TypedMetadata {
-    dataType: string,
+    dataType: MetadataTypes,
     notNull: boolean,
     optional: boolean
+}
+export interface ObjectMetadata extends TypedMetadata {
+    dataType: "object",
+    fields: Map<String, Schema<any, any, any>>
+}
+export interface ArrayMetadata extends TypedMetadata {
+    dataType: "array",
+    elements: Schema<any, any, any>
 }
 
 export type Schema<Target, Sources, B extends DefaultBehaviour> = {
@@ -38,7 +48,13 @@ export type SchemaDefinition = {
 }
 
 export class NotNullFacade<Target, Sources> implements Schema<Target, Sources, NotNull>{
-    get metadata() { return { dataType: this.internal.metadata.dataType, notNull: true, optional: false } };
+    get metadata() {
+        return {
+            ...this.internal.metadata,
+            notNull: true,
+            optional: false
+        }
+    }
 
     constructor(private internal: Schema<Target, Sources, any>) { }
     unbox = (source: Sources): Target => {
@@ -48,7 +64,13 @@ export class NotNullFacade<Target, Sources> implements Schema<Target, Sources, N
 }
 
 export class OptionalFacade<Target, Sources> implements Schema<Target, Sources, Optional>{
-    get metadata() { return { dataType: this.internal.metadata.dataType, notNull: false, optional: true } }
+    get metadata() {
+        return {
+            ...this.internal.metadata,
+            notNull: false,
+            optional: true
+        }
+    }
     constructor(private internal: Schema<Target, Sources, any>) { }
     unbox = (source: Sources | null | undefined): Target | null | undefined => {
         if (source === undefined) return undefined;
