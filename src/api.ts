@@ -24,7 +24,7 @@ export interface ApiMetadata<T extends ApiDefinition> {
     implementation: MetadataMembersImplementation<T>
 }
 
-export type ApiSchema<T extends ApiDefinition> = {
+export interface ApiSchema<T extends ApiDefinition> {
     get metadata(): ApiMetadata<T>
 }
 class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
