@@ -234,7 +234,6 @@ describe("Testing type unboxing", () => {
             boolField: boolS,
             floatField: floatS
         });
-        console.log(simpleRecordS.metadata);
         expect(simpleRecordS.metadata.dataType).toEqual("object");
         const fieldsMetadata = simpleRecordS.metadata as ObjectMetadata;
         expect(fieldsMetadata.fields.size).toEqual(6);

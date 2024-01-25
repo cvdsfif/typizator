@@ -57,7 +57,7 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
     constructor(definition: T) { this._metadata = this.extractMetadata(definition); }
 }
 const createApiS = <T extends ApiDefinition>(definition: T) => new ApiS(definition) as ApiSchema<T>
-export const apiS = <T extends ApiDefinition>(definition: T) => createApiS(definition);
+export const apiS = <T extends ApiDefinition>(definition: T): ApiSchema<T> => createApiS(definition);
 
 export type InferArguments<T extends [...any]> =
     T extends [...infer P] ? { [K in keyof P]: P[K] extends Schema ? InferTargetFromSchema<P[K]> : never } : never;
