@@ -7,6 +7,7 @@ export type FunctionCallDefinition = {
 }
 export type FunctionMetadata = {
     dataType: "function",
+    name: string,
     args: Schema[],
     retVal: Schema
 }
@@ -55,7 +56,7 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
     }
     constructor(definition: T) { this._metadata = this.extractMetadata(definition); }
 }
-export const apiS = <T extends ApiDefinition>(definition: T) => new ApiS(definition);
+export const apiS = <T extends ApiDefinition>(definition: T) => new ApiS(definition) as ApiSchema<T>;
 
 export type InferArguments<T extends [...any]> =
     T extends [...infer P] ? { [K in keyof P]: P[K] extends Schema ? InferTargetFromSchema<P[K]> : never } : never;
@@ -64,7 +65,7 @@ export type InferTargetFromSchema0<T> =
     T extends OptionalFacade<infer Target, any> ? Target | undefined | null :
     T extends TypeSchema<infer Target, any> | ByDefaultFacade<infer Target, any, any> ? Target | null :
     undefined;
-export type ApiImplementation<T> = T extends ApiS<infer S> ? ApiImplementation<S> : {
+export type ApiImplementation<T> = T extends ApiSchema<infer S> ? ApiImplementation<S> : {
     [K in keyof T]:
     T[K] extends ApiDefinition ? ApiImplementation<T[K]> :
     T[K] extends FunctionCallDefinition ?
