@@ -18,7 +18,7 @@ export type MetadataMembersImplementation<T extends ApiDefinition> = {
     [K in keyof T]:
     T[K] extends ApiDefinition ? MetadataMembersImplementation<T[K]> : T[K]
 }
-export type ApiMetadata<T extends ApiDefinition> = {
+export interface ApiMetadata<T extends ApiDefinition> {
     dataType: "api",
     members: Map<keyof T, FunctionMetadata | ApiMetadata<any>>,
     implementation: MetadataMembersImplementation<T>
