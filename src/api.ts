@@ -28,9 +28,9 @@ export interface ApiSchema<T extends ApiDefinition> {
     get metadata(): ApiMetadata<T>
 }
 class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
-    private readonly _metadata: ApiMetadata<T>;
+    readonly _metadata: ApiMetadata<T>;
     public get metadata() { return this._metadata; }
-    private extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata<D> => {
+    extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata<D> => {
         const result = new Map<keyof D, FunctionMetadata | ApiMetadata<ApiDefinition>>();
         const impl = {} as MetadataMembersImplementation<D>;
         Object.keys(definition).forEach(key => {
@@ -56,8 +56,7 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
     }
     constructor(definition: T) { this._metadata = this.extractMetadata(definition); }
 }
-const createApiS = <T extends ApiDefinition>(definition: T) => new ApiS(definition) as ApiSchema<T>
-export const apiS = <T extends ApiDefinition>(definition: T): ApiSchema<T> => createApiS(definition);
+export const apiS = <T extends ApiDefinition>(definition: T) => new ApiS(definition) as ApiSchema<T>;
 
 export type InferArguments<T extends [...any]> =
     T extends [...infer P] ? { [K in keyof P]: P[K] extends Schema ? InferTargetFromSchema<P[K]> : never } : never;
