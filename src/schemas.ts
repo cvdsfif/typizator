@@ -21,13 +21,22 @@ export interface ArrayMetadata extends TypedMetadata {
     elements: Schema
 }
 
-export type Schema<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour> = {
+export interface Schema<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour> {
     get metadata(): TypedMetadata,
     unbox: (source: AllowNull<Sources, B>) => AllowNull<Target, B>;
 }
+export interface ExtendedSchema<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour>
+    extends Schema<Target, Sources, B> {
+    notNull: NotNullFacade<Target, Sources>;
+    optional: OptionalFacade<Target, Sources>;
+    byDefault: (
+        target: Target | Error | ((s: Sources) => Target),
+        condition?: (source: Sources) => boolean) =>
+        ByDefaultFacade<Target, Sources, B>;
+}
 
 export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultBehaviour = { allowNull: true, optional: false }>
-    implements Schema<Target, Sources, B> {
+    implements ExtendedSchema<Target, Sources, B> {
     abstract get metadata(): TypedMetadata;
     protected abstract convert: (source: Sources) => Target
     unbox = (source: AllowNull<Sources, B>): AllowNull<Target, B> => {
@@ -40,7 +49,7 @@ export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultB
     byDefault = (
         target: Target | Error | ((s: Sources) => Target),
         condition = (source => source === null) as (source: Sources) => boolean) =>
-        new ByDefaultFacade(this as any, target, condition)
+        new ByDefaultFacadeImpl(this as any, target, condition) as ByDefaultFacade<Target, Sources, B>
 }
 
 export type SchemaDefinition = {
@@ -78,7 +87,12 @@ export class OptionalFacade<Target = any, Sources = any> implements Schema<Targe
     }
 }
 
-export class ByDefaultFacade<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour> implements Schema<Target, Sources, B>{
+export interface ByDefaultFacade<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour> extends Schema<Target, Sources, B> {
+    optional: OptionalFacade<Target, Sources>;
+}
+class ByDefaultFacadeImpl<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour>
+    implements ByDefaultFacade<Target, Sources, B>
+{
     get metadata() { return this.internal.metadata; }
     private targetCheck: (s: Sources) => Target;
     constructor(

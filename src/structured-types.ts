@@ -1,5 +1,5 @@
 import { JSONArrayNotFoundError } from "./errors";
-import { ArrayMetadata, ByDefaultFacade, NotNullFacade, ObjectMetadata, OptionalFacade, Schema, SchemaDefinition, TypeSchema } from "./schemas";
+import { ArrayMetadata, ByDefaultFacade, ExtendedSchema, NotNullFacade, ObjectMetadata, OptionalFacade, Schema, SchemaDefinition, TypeSchema } from "./schemas";
 import { InferSourceFromSchema, InferTargetFromSchema, SchemaSource, SchemaTarget } from "./type-conversions";
 import JSONBig from "json-bigint";
 
@@ -28,7 +28,8 @@ class ObjectS<T extends SchemaDefinition> extends TypeSchema<SchemaTarget<T>, Sc
         return convertedObject;
     }
 }
-export const objectS = <T extends SchemaDefinition>(definition: T) => new ObjectS(definition);
+export const objectS = <T extends SchemaDefinition>(definition: T) =>
+    new ObjectS(definition) as ExtendedSchema<SchemaTarget<T>, SchemaSource<T>>;
 
 class ArrayS<S extends Schema>
     extends TypeSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string>
@@ -55,4 +56,4 @@ class ArrayS<S extends Schema>
 }
 export const arrayS =
     <S extends TypeSchema | NotNullFacade | OptionalFacade | ByDefaultFacade>
-        (elements: S) => new ArrayS<S>(elements);
+        (elements: S) => new ArrayS<S>(elements) as ExtendedSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string>;

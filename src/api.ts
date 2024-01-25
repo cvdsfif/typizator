@@ -28,9 +28,9 @@ export interface ApiSchema<T extends ApiDefinition> {
     get metadata(): ApiMetadata<T>
 }
 class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
-    readonly _metadata: ApiMetadata<T>;
+    private readonly _metadata: ApiMetadata<T>;
     public get metadata() { return this._metadata; }
-    extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata<D> => {
+    private extractMetadata = <D extends ApiDefinition>(definition: D): ApiMetadata<D> => {
         const result = new Map<keyof D, FunctionMetadata | ApiMetadata<ApiDefinition>>();
         const impl = {} as MetadataMembersImplementation<D>;
         Object.keys(definition).forEach(key => {
