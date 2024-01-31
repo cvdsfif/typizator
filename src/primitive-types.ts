@@ -5,14 +5,14 @@ const defaultMetadata = (dataType: PrimitiveSchemaTypes) => ({ dataType, notNull
 class BigintS extends TypeSchema<bigint, bigint | number | string>{
     private _metadata = defaultMetadata("bigint");
     get metadata() { return this._metadata; }
-    protected convert = (source: bigint | number | string): bigint => BigInt(source);
+    protected convert = (source: bigint | number | string): bigint => typeof source === "bigint" ? source : BigInt(source);
 }
 export const bigintS = new BigintS() as ExtendedSchema<bigint, bigint | number | string>;
 
 class StringS extends TypeSchema<string, string | bigint | number>{
     private _metadata = defaultMetadata("string");
     get metadata() { return this._metadata; }
-    protected convert = (source: string | bigint | number): string => `${source}`
+    protected convert = (source: string | bigint | number): string => typeof source === "string" ? source : `${source}`
 }
 export const stringS = new StringS() as ExtendedSchema<string, string | bigint | number>;
 
