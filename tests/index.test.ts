@@ -45,9 +45,9 @@ describe("Testing type unboxing", () => {
         expect(simpleRecordS.unbox(`{ "id": 12345678901234567890, "name": 12345678901234567890 }`))
             .toEqual({ id: 12345678901234567890n, name: "12345678901234567890" });
         expect(() => simpleRecordS.unbox(`{ "id": null, "name": 12345678901234567890 }`))
-            .toThrow(NullNotAllowedError);
+            .toThrow("Unboxing id: Null not allowed");
         expect(() => simpleRecordS.unbox(`{ "id": 12345678901234567890 }`))
-            .toThrow(FieldMissingError);
+            .toThrow("Unboxing name: Field missing");
         expect(simpleRecordS.unbox(`null`)).toBeNull();
     });
 
@@ -101,8 +101,8 @@ describe("Testing type unboxing", () => {
             badInt: intS.optional,
             nanAllowed: intS.byDefault(NaN, (source: any) => isNaN(Number(source))).optional
         });
-        expect(() => errorRecordS.unbox({ hugeInt: 12345678901234567890n })).toThrow(IntOutOfBoundsError);
-        expect(() => errorRecordS.unbox({ hugeInt: "wrong" })).toThrow(InvalidNumberError);
+        expect(() => errorRecordS.unbox({ hugeInt: 12345678901234567890n })).toThrow("Unboxing hugeInt: Integer out of bounds");
+        expect(() => errorRecordS.unbox({ hugeInt: "wrong" })).toThrow("Unboxing hugeInt: Invalid number");
         expect(() => intS.unbox("wrong")).toThrow(InvalidNumberError);
         expect(errorRecordS.unbox({ nanAllowed: "too bad" })?.nanAllowed).toBeNaN();
     });
@@ -131,7 +131,7 @@ describe("Testing type unboxing", () => {
         const errorRecordS = objectS({
             badFloat: floatS
         });
-        expect(() => errorRecordS.unbox({ badFloat: "wrong" })).toThrow(InvalidNumberError);
+        expect(() => errorRecordS.unbox({ badFloat: "wrong" })).toThrow("Unboxing badFloat: Invalid number");
     });
 
     test("Unboxing dates", () => {
@@ -247,6 +247,18 @@ describe("Testing type unboxing", () => {
         const simpleArrayS = arrayS(simpleRecordS);
         expect(simpleArrayS.metadata.dataType).toEqual("array");
         expect((simpleArrayS.metadata as ArrayMetadata).elements.metadata.dataType).toEqual("object");
+    });
+
+    test("Should throw informative error if there is an exception unboxing an object field", () => {
+        const errObjS = objectS({
+            notNullableField: intS.notNull
+        });
+        expect(() => errObjS.unbox(`{ "notNullableField": null }`)).toThrow("Unboxing notNullableField: Null not allowed");
+    });
+
+    test("Should throw informative error if there is an exception unboxing an array field", () => {
+        const errObjS = arrayS(intS.notNull);
+        expect(() => errObjS.unbox(`[1,null]`)).toThrow("Unboxing array element 1: Null not allowed");
     });
 
     test("Implement and call API", async () => {

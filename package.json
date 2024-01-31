@@ -1,6 +1,6 @@
 {
   "name": "typizator",
-  "version": "1.0.0-beta.24",
+  "version": "1.0.0-beta.25",
   "description": "Runtime types and metadata schemas for Typescript",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "build": "rm -rf dist && node build.js && tsc --emitDeclarationOnly",
-    "test": "tsc --build --clean && jest && $(yarn bin)/coverage-badges"
+    "test": "tsc --build --clean && jest $npm_config_dir && $(yarn bin)/coverage-badges"
   },
   "repository": {
     "type": "git",

@@ -28,7 +28,11 @@ class ObjectSImpl<T extends SchemaDefinition>
         if (sourceConverted === null) return null as any;
         const convertedObject = {} as SchemaTarget<T>;
         for (const [key, schema] of this._metadata.fields.entries()) {
-            (convertedObject as any)[key as string] = schema.unbox(sourceConverted[key as string]);
+            try {
+                (convertedObject as any)[key as string] = schema.unbox(sourceConverted[key as string]);
+            } catch (e: any) {
+                throw new Error(`Unboxing ${key}: ${e.message}`);
+            }
         }
         return convertedObject;
     }
@@ -56,7 +60,13 @@ class ArrayS<S extends Schema>
         if (sourceConverted === null) return null as any;
         if (!Array.isArray(sourceConverted)) throw new JSONArrayNotFoundError();
 
-        return sourceConverted.map((element: InferSourceFromSchema<S>) => this.elements.unbox(element));
+        return sourceConverted.map((element: InferSourceFromSchema<S>, idx) => {
+            try {
+                return this.elements.unbox(element);
+            } catch (e: any) {
+                throw new Error(`Unboxing array element ${idx}: ${e.message}`);
+            }
+        });
     }
 }
 export const arrayS =
