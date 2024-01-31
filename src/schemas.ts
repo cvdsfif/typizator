@@ -1,6 +1,6 @@
 import { FieldMissingError, NullNotAllowedError } from "./errors";
 
-type DefaultBehaviour = { allowNull: boolean, optional: boolean }
+export type DefaultBehaviour = { allowNull: boolean, optional: boolean }
 interface NotNull extends DefaultBehaviour { allowNull: false }
 interface Optional extends DefaultBehaviour { optional: true, allowNull: true }
 type AllowNull<T, B extends DefaultBehaviour> = B extends NotNull ? T : B extends Optional ? T | null | undefined : T | null;
