@@ -1,4 +1,4 @@
-import { ApiImplementation, ApiMetadata, ArrayMetadata, FieldMissingError, FunctionMetadata, IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, NullNotAllowedError, ObjectMetadata, always, apiS, arrayS, bigintS, boolS, dateS, floatS, intS, objectS, stringS } from "../src";
+import { ApiImplementation, ApiMetadata, ArrayMetadata, FieldMissingError, FunctionMetadata, IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, NullNotAllowedError, always, apiS, arrayS, bigintS, boolS, dateS, floatS, intS, objectS, stringS } from "../src";
 
 describe("Testing type unboxing", () => {
 
@@ -235,7 +235,7 @@ describe("Testing type unboxing", () => {
             floatField: floatS
         });
         expect(simpleRecordS.metadata.dataType).toEqual("object");
-        const fieldsMetadata = simpleRecordS.metadata as ObjectMetadata;
+        const fieldsMetadata = simpleRecordS.metadata;
         expect(fieldsMetadata.fields.size).toEqual(6);
         expect(fieldsMetadata.fields.get("id")?.metadata.dataType).toEqual("bigint");
         expect(fieldsMetadata.fields.get("id")?.metadata.notNull).toBeTruthy();

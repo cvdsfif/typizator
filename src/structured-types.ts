@@ -3,7 +3,12 @@ import { ArrayMetadata, ByDefaultFacade, ExtendedSchema, NotNullFacade, ObjectMe
 import { InferSourceFromSchema, InferTargetFromSchema, SchemaSource, SchemaTarget } from "./type-conversions";
 import JSONBig from "json-bigint";
 
-class ObjectS<T extends SchemaDefinition> extends TypeSchema<SchemaTarget<T>, SchemaSource<T>>{
+export interface ObjectS<T extends SchemaDefinition> extends ExtendedSchema<SchemaTarget<T>, SchemaSource<T>> {
+    get metadata(): ObjectMetadata;
+}
+class ObjectSImpl<T extends SchemaDefinition>
+    extends TypeSchema<SchemaTarget<T>, SchemaSource<T>>
+    implements ObjectS<T>{
     private readonly _metadata;
     get metadata() { return this._metadata as ObjectMetadata; }
 
@@ -29,7 +34,7 @@ class ObjectS<T extends SchemaDefinition> extends TypeSchema<SchemaTarget<T>, Sc
     }
 }
 export const objectS = <T extends SchemaDefinition>(definition: T) =>
-    new ObjectS(definition) as ExtendedSchema<SchemaTarget<T>, SchemaSource<T>>;
+    new ObjectSImpl(definition) as ObjectS<T>;
 
 class ArrayS<S extends Schema>
     extends TypeSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string>
