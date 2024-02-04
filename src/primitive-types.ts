@@ -1,5 +1,5 @@
 import { IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError } from "./errors";
-import { ExtendedSchema, PrimitiveSchemaTypes, Schema, TypeSchema } from "./schemas";
+import { ExtendedSchema, NotNullFacade, OptionalFacade, PrimitiveSchemaTypes, Schema, TypeSchema } from "./schemas";
 
 const defaultMetadata = (dataType: PrimitiveSchemaTypes) => ({ dataType, notNull: false, optional: false });
 class BigintS extends TypeSchema<bigint, bigint | number | string>{
@@ -40,8 +40,8 @@ class FloatS extends TypeSchema<number, bigint | number | string>{
 }
 export const floatS = new FloatS() as ExtendedSchema<number, bigint | number | string>;
 
-export type DateSchema = ExtendedSchema<Date, Date | string>;
-class DateS extends TypeSchema<Date, Date | string>{
+export type DateS = ExtendedSchema<Date, Date | string>;
+class DateSImpl extends TypeSchema<Date, Date | string>{
     private _metadata = defaultMetadata("date");
     get metadata() { return this._metadata; }
     protected convert = (source: Date | string): Date => {
@@ -53,7 +53,7 @@ class DateS extends TypeSchema<Date, Date | string>{
         return source;
     }
 }
-export const dateS = new DateS() as DateSchema
+export const dateS = new DateSImpl() as DateS
 
 class BoolS extends TypeSchema<boolean, boolean | string | number>{
     private _metadata = defaultMetadata("bool");

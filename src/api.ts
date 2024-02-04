@@ -1,4 +1,4 @@
-import { ByDefaultFacade, NotNullFacade, OptionalFacade, Schema, TypeSchema } from "./schemas"
+import { Schema } from "./schemas"
 import { InferTargetFromSchema } from "./type-conversions"
 
 export type FunctionCallDefinition = {
@@ -60,11 +60,6 @@ export const apiS = <T extends ApiDefinition>(definition: T) => new ApiS(definit
 
 export type InferArguments<T extends [...any]> =
     T extends [...infer P] ? { [K in keyof P]: P[K] extends Schema ? InferTargetFromSchema<P[K]> : never } : never;
-export type InferTargetFromSchema0<T> =
-    T extends NotNullFacade<infer Target, any> ? Target :
-    T extends OptionalFacade<infer Target, any> ? Target | undefined | null :
-    T extends TypeSchema<infer Target, any> | ByDefaultFacade<infer Target, any, any> ? Target | null :
-    undefined;
 export type ApiImplementation<T> = T extends ApiSchema<infer S> ? ApiImplementation<S> : {
     [K in keyof T]:
     T[K] extends ApiDefinition ? ApiImplementation<T[K]> :
