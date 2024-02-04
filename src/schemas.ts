@@ -27,8 +27,8 @@ export interface Schema<Target = any, Sources = any, B extends DefaultBehaviour 
 }
 export interface ExtendedSchema<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour>
     extends Schema<Target, Sources, B> {
-    notNull: NotNullFacade<Target, Sources>;
-    optional: OptionalFacade<Target, Sources>;
+    notNull: NotNullFacade<Target, Sources> & this;
+    optional: OptionalFacade<Target, Sources> & this;
     byDefault: (
         target: Target | Error | ((s: Sources) => Target),
         condition?: (source: Sources) => boolean) =>
@@ -44,8 +44,8 @@ export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultB
         if (source === undefined) throw new FieldMissingError();
         return this.convert(source) as AllowNull<Target, B>;
     }
-    notNull = new NotNullFacade<Target, Sources>(this as any);
-    optional = new OptionalFacade<Target, Sources>(this as any);
+    notNull = new NotNullFacade<Target, Sources>(this as any) as NotNullFacade<Target, Sources> & this;
+    optional = new OptionalFacade<Target, Sources>(this as any) as OptionalFacade<Target, Sources> & this;
     byDefault = (
         target: Target | Error | ((s: Sources) => Target),
         condition = (source => source === null) as (source: Sources) => boolean) =>
