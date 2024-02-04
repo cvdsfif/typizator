@@ -1,4 +1,4 @@
-import { ByDefaultFacade, NotNullFacade, OptionalFacade, Schema, SchemaDefinition, TypeSchema } from "./schemas";
+import { NotNullFacade, OptionalFacade, Schema, SchemaDefinition } from "./schemas";
 
 export type InferSourceFromSchema<T> =
     T extends NotNullFacade<any, infer Source> ? Source :

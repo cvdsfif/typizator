@@ -40,6 +40,7 @@ class FloatS extends TypeSchema<number, bigint | number | string>{
 }
 export const floatS = new FloatS() as ExtendedSchema<number, bigint | number | string>;
 
+export type DateSchema = ExtendedSchema<Date, Date | string>;
 class DateS extends TypeSchema<Date, Date | string>{
     private _metadata = defaultMetadata("date");
     get metadata() { return this._metadata; }
@@ -52,7 +53,7 @@ class DateS extends TypeSchema<Date, Date | string>{
         return source;
     }
 }
-export const dateS = new DateS() as ExtendedSchema<Date, Date | string>;
+export const dateS = new DateS() as DateSchema
 
 class BoolS extends TypeSchema<boolean, boolean | string | number>{
     private _metadata = defaultMetadata("bool");
