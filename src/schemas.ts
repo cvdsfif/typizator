@@ -1,4 +1,6 @@
-import { FieldMissingError, NullNotAllowedError } from "./errors";
+import { FieldMissingError, JSONArrayNotFoundError, NullNotAllowedError } from "./errors";
+import { InferSourceFromSchema, InferTargetFromSchema, SchemaSource, SchemaTarget } from "./type-conversions";
+import JSONBig from "json-bigint";
 
 export type DefaultBehaviour = { allowNull: boolean, optional: boolean }
 interface NotNull extends DefaultBehaviour { allowNull: false }
@@ -21,11 +23,24 @@ export interface ArrayMetadata extends TypedMetadata {
     elements: Schema
 }
 
-export interface Schema<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour> {
-    get metadata(): TypedMetadata,
+export type MetadataForSchema<T> =
+    T extends ObjectS<any> ? ObjectMetadata :
+    T extends ArrayS<any> ? ArrayMetadata :
+    TypedMetadata
+
+export interface Schema<
+    Target = any,
+    Sources = any,
+    B extends DefaultBehaviour = DefaultBehaviour,
+    Original extends Schema = any
+> {
+    get metadata(): MetadataForSchema<Original>,
     unbox: (source: AllowNull<Sources, B>) => AllowNull<Target, B>;
 }
-export interface ExtendedSchema<Target = any, Sources = any, B extends DefaultBehaviour = DefaultBehaviour>
+export interface ExtendedSchema<
+    Target = any,
+    Sources = any,
+    B extends DefaultBehaviour = DefaultBehaviour>
     extends Schema<Target, Sources, B> {
     notNull: NotNullFacade<Target, Sources, B, this>;
     optional: OptionalFacade<Target, Sources, B, this>;
@@ -49,7 +64,7 @@ export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultB
     byDefault = (
         target: Target | Error | ((s: Sources) => Target),
         condition = (source => source === null) as (source: Sources) => boolean) =>
-        new ByDefaultFacadeImpl(this as any, target, condition) as ByDefaultFacade<Target, Sources, B, this>
+        new ByDefaultFacadeImpl(this as any, target, condition) as unknown as ByDefaultFacade<Target, Sources, B, this>
 }
 
 export type SchemaDefinition = {
@@ -57,10 +72,10 @@ export type SchemaDefinition = {
 }
 
 export class NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
-    implements Schema<Target, Sources, NotNull>{
+    implements Schema<Target, Sources, NotNull, Original>{
     get metadata() {
         return {
-            ...this.internal.metadata,
+            ...this.internal.metadata as MetadataForSchema<Original>,
             notNull: true,
             optional: false
         }
@@ -74,10 +89,10 @@ export class NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original
 }
 
 export class OptionalFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
-    implements Schema<Target, Sources, Optional>{
+    implements Schema<Target, Sources, Optional, Original>{
     get metadata() {
         return {
-            ...this.internal.metadata,
+            ...this.internal.metadata as MetadataForSchema<Original>,
             notNull: false,
             optional: true
         }
@@ -90,13 +105,13 @@ export class OptionalFacade<Target, Sources, B extends DefaultBehaviour, Origina
 }
 
 export interface ByDefaultFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
-    extends Schema<Target, Sources, B> {
+    extends Schema<Target, Sources, B, Original> {
     optional: OptionalFacade<Target, Sources, B, Original>;
 }
-class ByDefaultFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
+class ByDefaultFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B, Original>>
     implements ByDefaultFacade<Target, Sources, B, Original>
 {
-    get metadata() { return this.internal.metadata; }
+    get metadata() { return this.internal.metadata as MetadataForSchema<Original>; }
     private targetCheck: (s: Sources) => Target;
     constructor(
         private internal: Original,
@@ -104,8 +119,8 @@ class ByDefaultFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original 
         private condition: (source: Sources) => boolean) {
         this.targetCheck =
             typeof target === "function" ? this.targetCheck = target as any :
-                target instanceof Error ? this.targetCheck = s => { throw target } :
-                    source => target
+                target instanceof Error ? this.targetCheck = _ => { throw target } :
+                    _ => target
     }
     optional = new OptionalFacade<Target, Sources, B, Original>(this as any);
     unbox = (source: AllowNull<Sources, B>): AllowNull<Target, B> => {
@@ -116,3 +131,74 @@ class ByDefaultFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original 
 
 export type ExtractFromFacade<T> =
     T extends NotNullFacade<any, any, any, infer S> ? S : T;
+
+export interface ObjectS<T extends SchemaDefinition> extends ExtendedSchema<SchemaTarget<T>, SchemaSource<T>> {
+    get metadata(): ObjectMetadata;
+}
+class ObjectSImpl<T extends SchemaDefinition>
+    extends TypeSchema<SchemaTarget<T>, SchemaSource<T>>
+    implements ObjectS<T>{
+    private readonly _metadata;
+    get metadata() { return this._metadata as ObjectMetadata; }
+
+    constructor(definition: T) {
+        super();
+        this._metadata = {
+            dataType: "object",
+            fields: new Map<String, Schema>(),
+            notNull: false,
+            optional: false
+        }
+        Object.keys(definition).forEach(key => this._metadata.fields.set(key, definition[key]));
+    }
+    protected convert = (source: SchemaSource<T>): SchemaTarget<T> => {
+        const sourceConverted =
+            typeof source === "string" ? JSONBig.parse(source) : source;
+        if (sourceConverted === null) return null as any;
+        const convertedObject = {} as SchemaTarget<T>;
+        for (const [key, schema] of this._metadata.fields.entries()) {
+            try {
+                (convertedObject as any)[key as string] = schema.unbox(sourceConverted[key as string]);
+            } catch (e: any) {
+                throw new Error(`Unboxing ${key}: ${e.message}`);
+            }
+        }
+        return convertedObject;
+    }
+}
+export const objectS = <T extends SchemaDefinition>(definition: T) =>
+    new ObjectSImpl(definition) as ObjectS<T>;
+
+class ArrayS<S extends Schema>
+    extends TypeSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string>
+{
+    get metadata() {
+        return {
+            dataType: "array",
+            elements: this.elements,
+            notNull: false,
+            optional: false
+        } as ArrayMetadata
+    }
+    constructor(private elements: S) {
+        super();
+    }
+    protected convert = (source: InferSourceFromSchema<S>[] | string): InferTargetFromSchema<S>[] => {
+        const sourceConverted =
+            typeof source === "string" ? JSONBig.parse(source) : source;
+        if (sourceConverted === null) return null as any;
+        if (!Array.isArray(sourceConverted)) throw new JSONArrayNotFoundError();
+
+        return sourceConverted.map((element: InferSourceFromSchema<S>, idx) => {
+            try {
+                return this.elements.unbox(element);
+            } catch (e: any) {
+                throw new Error(`Unboxing array element ${idx}: ${e.message}`);
+            }
+        });
+    }
+}
+export const arrayS =
+    <S extends Schema>
+        (elements: S) => new ArrayS<S>(elements) as ExtendedSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string>;
+
