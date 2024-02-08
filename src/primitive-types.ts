@@ -1,11 +1,14 @@
 import { IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError } from "./errors";
-import { ExtendedSchema, NotNullFacade, OptionalFacade, PrimitiveSchemaTypes, Schema, TypeSchema } from "./schemas";
+import { ExtendedSchema, PrimitiveSchemaTypes, TypeSchema } from "./schemas";
 
 const defaultMetadata = (dataType: PrimitiveSchemaTypes) => ({ dataType, notNull: false, optional: false });
 class BigintS extends TypeSchema<bigint, bigint | number | string>{
     private _metadata = defaultMetadata("bigint");
     get metadata() { return this._metadata; }
-    protected convert = (source: bigint | number | string): bigint => typeof source === "bigint" ? source : BigInt(source);
+    protected convert = (source: bigint | number | string): bigint =>
+        typeof source === "bigint" ? source :
+            typeof source === "string" ? BigInt(source.replace(/[\.|,][0-9]*$/, "")) :
+                typeof source === "number" ? BigInt(Math.floor(source)) : BigInt(source);
 }
 export const bigintS = new BigintS() as ExtendedSchema<bigint, bigint | number | string>;
 
@@ -22,7 +25,7 @@ class IntS extends TypeSchema<number, bigint | number | string>{
     protected convert = (source: number | bigint | string): number => {
         const converted = Number(source);
         if (Number.isNaN(converted)) throw new InvalidNumberError();
-        const returned = Number.isInteger(converted) ? converted : Math.round(converted);
+        const returned = Number.isInteger(converted) ? converted : Math.floor(converted);
         if (!Number.isSafeInteger(returned)) throw new IntOutOfBoundsError();
         return returned;
     }

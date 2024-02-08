@@ -89,7 +89,7 @@ describe("Testing type unboxing", () => {
             intFromInt: 1,
             intFromString: 2,
             intFromBigint: 3,
-            intFromFloat: 4,
+            intFromFloat: 3,
             intCustomRound: 5,
             intFromFloatString: 6
         });
@@ -303,4 +303,14 @@ describe("Testing type unboxing", () => {
         expect((simpleApiS.metadata.members.get("noMeow") as FunctionMetadata).dataType).toEqual("function");
         expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string");
     });
+
+    test("Bigint should correctly unbox float number strings and numbers", () => {
+        expect(bigintS.unbox("42.00000")).toEqual(42n)
+        expect(bigintS.unbox("42.")).toEqual(42n)
+        expect(bigintS.unbox("42,00000")).toEqual(42n)
+        expect(bigintS.unbox("42,")).toEqual(42n)
+        expect(bigintS.unbox("0x42")).toEqual(66n)
+        expect(bigintS.unbox(42.5)).toEqual(42n)
+        expect(bigintS.unbox("42.5")).toEqual(42n)
+    })
 });
