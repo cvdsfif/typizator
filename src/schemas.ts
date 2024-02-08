@@ -130,7 +130,9 @@ class ByDefaultFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original 
 }
 
 export type ExtractFromFacade<T> =
-    T extends NotNullFacade<any, any, any, infer S> ? S : T;
+    T extends NotNullFacade<any, any, any, infer S> ? S :
+    T extends OptionalFacade<any, any, any, infer S> ? S :
+    T;
 
 export interface ObjectS<T extends SchemaDefinition> extends ExtendedSchema<SchemaTarget<T>, SchemaSource<T>> {
     get metadata(): ObjectMetadata;
