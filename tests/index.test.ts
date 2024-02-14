@@ -313,4 +313,15 @@ describe("Testing type unboxing", () => {
         expect(bigintS.unbox(42.5)).toEqual(42n)
         expect(bigintS.unbox("42.5")).toEqual(42n)
     })
+
+    test("Should unbox null strings as nulls for non-string types", () => {
+        expect(intS.unbox("null")).toBeNull()
+        expect(bigintS.unbox("null")).toBeNull()
+        expect(dateS.unbox("null")).toBeNull()
+        expect(boolS.unbox("null")).toBeNull()
+        expect(floatS.unbox("null")).toBeNull()
+        expect(objectS({ a: stringS }).unbox("null")).toBeNull()
+        expect(objectS({ a: stringS }).unbox(null)).toBeNull()
+        expect(() => intS.notNull.unbox("null")).toThrow()
+    })
 });

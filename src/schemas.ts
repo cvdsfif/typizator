@@ -55,7 +55,7 @@ export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultB
     abstract get metadata(): TypedMetadata;
     protected abstract convert: (source: Sources) => Target
     unbox = (source: AllowNull<Sources, B>): AllowNull<Target, B> => {
-        if (source === null) return null as any;
+        if (source === null || source === "null") return null as any;
         if (source === undefined) throw new FieldMissingError();
         return this.convert(source) as AllowNull<Target, B>;
     }
@@ -83,7 +83,7 @@ export class NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original
 
     constructor(private internal: Original) { }
     unbox = (source: Sources): Target => {
-        if (source === null) throw new NullNotAllowedError();
+        if (source === null || source === "null") throw new NullNotAllowedError();
         return this.internal.unbox(source as AllowNull<Sources, B>)!;
     }
 }
@@ -156,7 +156,6 @@ class ObjectSImpl<T extends SchemaDefinition>
     protected convert = (source: SchemaSource<T>): SchemaTarget<T> => {
         const sourceConverted =
             typeof source === "string" ? JSONBig.parse(source) : source;
-        if (sourceConverted === null) return null as any;
         const convertedObject = {} as SchemaTarget<T>;
         for (const [key, schema] of this._metadata.fields.entries()) {
             try {
@@ -188,7 +187,6 @@ class ArrayS<S extends Schema>
     protected convert = (source: InferSourceFromSchema<S>[] | string): InferTargetFromSchema<S>[] => {
         const sourceConverted =
             typeof source === "string" ? JSONBig.parse(source) : source;
-        if (sourceConverted === null) return null as any;
         if (!Array.isArray(sourceConverted)) throw new JSONArrayNotFoundError();
 
         return sourceConverted.map((element: InferSourceFromSchema<S>, idx) => {
