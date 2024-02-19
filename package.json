@@ -1,6 +1,6 @@
 {
   "name": "typizator",
-  "version": "1.0.0-beta.34",
+  "version": "1.0.0-beta.35",
   "description": "Runtime types and metadata schemas for Typescript",
   "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
