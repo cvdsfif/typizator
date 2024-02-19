@@ -200,5 +200,9 @@ class ArrayS<S extends Schema>
 }
 export const arrayS =
     <S extends Schema>
-        (elements: S) => new ArrayS<S>(elements) as ExtendedSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string>;
+        (elements: S) => new ArrayS<S>(elements) as ExtendedSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string>
+
+export type ObjectOrFacadeS<T extends SchemaDefinition> =
+    ObjectS<T> |
+    NotNullFacade<SchemaTarget<T>, SchemaSource<T>, DefaultBehaviour, ObjectS<T>>
 

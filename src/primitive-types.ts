@@ -1,14 +1,15 @@
 import { IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError } from "./errors";
 import { ExtendedSchema, PrimitiveSchemaTypes, TypeSchema } from "./schemas";
 
+const integrifyString = (s: string) => s.replace(/[\.|,][0-9]*$/, "")
 const defaultMetadata = (dataType: PrimitiveSchemaTypes) => ({ dataType, notNull: false, optional: false });
 class BigintS extends TypeSchema<bigint, bigint | number | string>{
     private _metadata = defaultMetadata("bigint");
     get metadata() { return this._metadata; }
     protected convert = (source: bigint | number | string): bigint =>
         typeof source === "bigint" ? source :
-            typeof source === "string" ? BigInt(source.replace(/[\.|,][0-9]*$/, "")) :
-                typeof source === "number" ? BigInt(Math.floor(source)) : BigInt(source);
+            typeof source === "string" ? BigInt(integrifyString(source)) :
+                typeof source === "number" ? BigInt(Math.floor(source)) : BigInt(integrifyString(`${source}`));
 }
 export const bigintS = new BigintS() as ExtendedSchema<bigint, bigint | number | string>;
 

@@ -1,4 +1,5 @@
 import { ApiImplementation, ApiMetadata, ArrayMetadata, FieldMissingError, FunctionMetadata, IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, NullNotAllowedError, always, apiS, arrayS, bigintS, boolS, dateS, floatS, intS, objectS, stringS } from "../src";
+import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
 
@@ -312,6 +313,18 @@ describe("Testing type unboxing", () => {
         expect(bigintS.unbox("0x42")).toEqual(66n)
         expect(bigintS.unbox(42.5)).toEqual(42n)
         expect(bigintS.unbox("42.5")).toEqual(42n)
+        expect(bigintS.unbox("35603590.4756")).toEqual(35603590n)
+        expect(bigintS.unbox(35603590.4756)).toEqual(35603590n)
+        expect(objectS({ runningBalance: bigintS }).unbox({ runningBalance: 35603590.4756 })).toEqual({ runningBalance: 35603590n })
+        expect(
+            objectS({ runningBalance: bigintS, str: stringS })
+                .unbox(`{ "runningBalance":35603590.4756,"str":"str" }`))
+            .toEqual({ runningBalance: 35603590n, str: "str" })
+        expect(
+            objectS({ runningBalance: bigintS, str: stringS })
+                .unbox(JSON.parse(`{ "runningBalance":35603590.4756,"str":"str" }`)))
+            .toEqual({ runningBalance: 35603590n, str: "str" })
+        expect(bigintS.unbox(new BigNumber("35603590.4756") as any)).toEqual(35603590n)
     })
 
     test("Should unbox null strings as nulls for non-string types", () => {
