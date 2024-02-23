@@ -15,9 +15,14 @@ export const transformToArray = <T extends SchemaDefinition>
     lines.shift()
     return lines
         .filter(line => line.trim() !== "")
-        .map(line => {
+        .map((line, lineIdx) => {
             const values = splitLine(line)
             return header.reduce((accumulator: Object, current: string, idx: number) => {
+                if (!values[idx]) {
+                    console.table(values)
+                    throw new Error(`Table column ${idx + 1} missing in row ${lineIdx + 1}`);
+
+                }
                 (accumulator as any)[current] = values[idx].replace(/(^")|("$)/g, '')
                 return accumulator
             }, (structuredClone(defaults) ?? {}))

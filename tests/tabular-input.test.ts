@@ -36,4 +36,13 @@ describe("Testing tabular input objects", () => {
             `
         ))
     })
+
+    test("Should throw exception on missing columns", () => {
+        expect(() => tabularInput(tabS, `
+            name           id
+            "good will"    
+            any            0
+            `, { d1: 1, d2: "q" }
+        )).toThrow("Table column 2 missing in row 1")
+    })
 })
