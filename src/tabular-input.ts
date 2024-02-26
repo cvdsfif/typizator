@@ -20,10 +20,12 @@ export const transformToArray = <T extends SchemaDefinition>
             return header.reduce((accumulator: Object, current: string, idx: number) => {
                 if (!values[idx]) {
                     console.table(values)
-                    throw new Error(`Table column ${idx + 1} missing in row ${lineIdx + 1}`);
-
+                    throw new Error(`Table column ${idx + 1} missing in row ${lineIdx + 1}`)
                 }
-                (accumulator as any)[current] = values[idx].replace(/(^")|("$)/g, '')
+                (accumulator as any)[current] =
+                    values[idx] === "null" ? null :
+                        values[idx] === "undefined" ? undefined :
+                            values[idx].replace(/(^")|("$)/g, '')
                 return accumulator
             }, (structuredClone(defaults) ?? {}))
         })
@@ -37,5 +39,5 @@ export const tabularInput =
             defaults?: Partial<SchemaTarget<T>>
         ): SchemaTarget<T>[] =>
         transformToArray(source, defaults)
-            .map(line => schema.unbox(line as SchemaSource<T>) as SchemaTarget<T>)
+            .map(line => schema.unbox(line as SchemaSource<T>, { keepNullString: true, keepUndefinedString: true }) as SchemaTarget<T>)
 

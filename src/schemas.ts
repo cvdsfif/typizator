@@ -23,6 +23,11 @@ export interface ArrayMetadata extends TypedMetadata {
     elements: Schema
 }
 
+export type UnboxingProperties = {
+    keepNullString?: boolean,
+    keepUndefinedString?: boolean
+}
+
 export type MetadataForSchema<T> =
     T extends ObjectS<any> ? ObjectMetadata :
     T extends ArrayS<any> ? ArrayMetadata :
@@ -35,7 +40,7 @@ export interface Schema<
     Original extends Schema = any
 > {
     get metadata(): MetadataForSchema<Original>,
-    unbox: (source: AllowNull<Sources, B>) => AllowNull<Target, B>;
+    unbox: (source: AllowNull<Sources, B>, props?: UnboxingProperties) => AllowNull<Target, B>;
 }
 export interface ExtendedSchema<
     Target = any,
@@ -53,11 +58,11 @@ export interface ExtendedSchema<
 export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultBehaviour = { allowNull: true, optional: false }>
     implements ExtendedSchema<Target, Sources, B> {
     abstract get metadata(): TypedMetadata;
-    protected abstract convert: (source: Sources) => Target
-    unbox = (source: AllowNull<Sources, B>): AllowNull<Target, B> => {
-        if (source === null || source === "null") return null as any;
-        if (source === undefined) throw new FieldMissingError();
-        return this.convert(source) as AllowNull<Target, B>;
+    protected abstract convert: (source: Sources, props?: UnboxingProperties) => Target
+    unbox = (source: AllowNull<Sources, B>, props?: UnboxingProperties): AllowNull<Target, B> => {
+        if (source === null || (props?.keepNullString !== true && source === "null")) return null as any;
+        if (source === undefined || (props?.keepUndefinedString === false && source === "undefined")) throw new FieldMissingError();
+        return this.convert(source, props) as AllowNull<Target, B>;
     }
     notNull = new NotNullFacade<Target, Sources, B, this>(this);
     optional = new OptionalFacade<Target, Sources, B, this>(this);
@@ -82,9 +87,9 @@ export class NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original
     }
 
     constructor(private internal: Original) { }
-    unbox = (source: Sources): Target => {
-        if (source === null || source === "null") throw new NullNotAllowedError();
-        return this.internal.unbox(source as AllowNull<Sources, B>)!;
+    unbox = (source: Sources, props?: UnboxingProperties): Target => {
+        if (source === null || (props?.keepNullString !== true && source === "null")) throw new NullNotAllowedError();
+        return this.internal.unbox(source as AllowNull<Sources, B>, props)!;
     }
 }
 
@@ -98,9 +103,10 @@ export class OptionalFacade<Target, Sources, B extends DefaultBehaviour, Origina
         }
     }
     constructor(private internal: Original) { }
-    unbox = (source: Sources | null | undefined): Target | null | undefined => {
-        if (source === undefined) return undefined;
-        return this.internal.unbox(source as any);
+
+    unbox = (source: Sources | null | undefined, props?: UnboxingProperties): Target | null | undefined => {
+        if (source === undefined || (props?.keepUndefinedString === false && source === "undefined")) return undefined
+        return this.internal.unbox(source as any, props)
     }
 }
 
@@ -123,9 +129,9 @@ class ByDefaultFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original 
                     _ => target
     }
     optional = new OptionalFacade<Target, Sources, B, Original>(this as any);
-    unbox = (source: AllowNull<Sources, B>): AllowNull<Target, B> => {
+    unbox = (source: AllowNull<Sources, B>, props?: UnboxingProperties): AllowNull<Target, B> => {
         if (this.condition(source!)) return this.targetCheck(source!) as AllowNull<Target, B>;
-        return this.internal.unbox(source);
+        return this.internal.unbox(source, props);
     }
 }
 
@@ -153,15 +159,16 @@ class ObjectSImpl<T extends SchemaDefinition>
         }
         Object.keys(definition).forEach(key => this._metadata.fields.set(key, definition[key]));
     }
-    protected convert = (source: SchemaSource<T>): SchemaTarget<T> => {
+
+    protected convert = (source: SchemaSource<T>, props?: UnboxingProperties): SchemaTarget<T> => {
         const sourceConverted =
-            typeof source === "string" ? JSONBig.parse(source) : source;
+            typeof source === "string" ? JSONBig.parse(source) : source
         const convertedObject = {} as SchemaTarget<T>;
         for (const [key, schema] of this._metadata.fields.entries()) {
             try {
-                (convertedObject as any)[key as string] = schema.unbox(sourceConverted[key as string]);
+                (convertedObject as any)[key as string] = schema.unbox(sourceConverted[key as string], props)
             } catch (e: any) {
-                throw new Error(`Unboxing ${key}: ${e.message}`);
+                throw new Error(`Unboxing ${key}, value: ${sourceConverted[key as string]}: ${e.message}`);
             }
         }
         return convertedObject;
@@ -184,16 +191,16 @@ class ArrayS<S extends Schema>
     constructor(private elements: S) {
         super();
     }
-    protected convert = (source: InferSourceFromSchema<S>[] | string): InferTargetFromSchema<S>[] => {
+    protected convert = (source: InferSourceFromSchema<S>[] | string, props?: UnboxingProperties): InferTargetFromSchema<S>[] => {
         const sourceConverted =
             typeof source === "string" ? JSONBig.parse(source) : source;
         if (!Array.isArray(sourceConverted)) throw new JSONArrayNotFoundError();
 
         return sourceConverted.map((element: InferSourceFromSchema<S>, idx) => {
             try {
-                return this.elements.unbox(element);
+                return this.elements.unbox(element, props);
             } catch (e: any) {
-                throw new Error(`Unboxing array element ${idx}: ${e.message}`);
+                throw new Error(`Unboxing array element ${idx}, value: ${element}: ${e.message}`);
             }
         });
     }

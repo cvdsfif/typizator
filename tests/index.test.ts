@@ -46,9 +46,9 @@ describe("Testing type unboxing", () => {
         expect(simpleRecordS.unbox(`{ "id": 12345678901234567890, "name": 12345678901234567890 }`))
             .toEqual({ id: 12345678901234567890n, name: "12345678901234567890" });
         expect(() => simpleRecordS.unbox(`{ "id": null, "name": 12345678901234567890 }`))
-            .toThrow("Unboxing id: Null not allowed");
+            .toThrow("Unboxing id, value: null: Null not allowed");
         expect(() => simpleRecordS.unbox(`{ "id": 12345678901234567890 }`))
-            .toThrow("Unboxing name: Field missing");
+            .toThrow("Unboxing name, value: undefined: Field missing");
         expect(simpleRecordS.unbox(`null`)).toBeNull();
     });
 
@@ -102,10 +102,11 @@ describe("Testing type unboxing", () => {
             badInt: intS.optional,
             nanAllowed: intS.byDefault(NaN, (source: any) => isNaN(Number(source))).optional
         });
-        expect(() => errorRecordS.unbox({ hugeInt: 12345678901234567890n })).toThrow("Unboxing hugeInt: Integer out of bounds");
-        expect(() => errorRecordS.unbox({ hugeInt: "wrong" })).toThrow("Unboxing hugeInt: Invalid number");
-        expect(() => intS.unbox("wrong")).toThrow(InvalidNumberError);
-        expect(errorRecordS.unbox({ nanAllowed: "too bad" })?.nanAllowed).toBeNaN();
+        expect(() => errorRecordS.unbox({ hugeInt: 12345678901234567890n }))
+            .toThrow(expect.objectContaining({ message: expect.stringContaining("Integer out of bounds") }))
+        expect(() => errorRecordS.unbox({ hugeInt: "wrong" })).toThrow("Unboxing hugeInt, value: wrong: Invalid number")
+        expect(() => intS.unbox("wrong")).toThrow(InvalidNumberError)
+        expect(errorRecordS.unbox({ nanAllowed: "too bad" })?.nanAllowed).toBeNaN()
     });
 
     test("Unboxing floats", () => {
@@ -132,7 +133,8 @@ describe("Testing type unboxing", () => {
         const errorRecordS = objectS({
             badFloat: floatS
         });
-        expect(() => errorRecordS.unbox({ badFloat: "wrong" })).toThrow("Unboxing badFloat: Invalid number");
+        expect(() => errorRecordS.unbox({ badFloat: "wrong" }))
+            .toThrow(expect.objectContaining({ message: expect.stringContaining("Invalid number") }))
     });
 
     test("Unboxing dates", () => {
@@ -254,12 +256,12 @@ describe("Testing type unboxing", () => {
         const errObjS = objectS({
             notNullableField: intS.notNull
         });
-        expect(() => errObjS.unbox(`{ "notNullableField": null }`)).toThrow("Unboxing notNullableField: Null not allowed");
+        expect(() => errObjS.unbox(`{ "notNullableField": null }`)).toThrow("Unboxing notNullableField, value: null: Null not allowed");
     });
 
     test("Should throw informative error if there is an exception unboxing an array field", () => {
         const errObjS = arrayS(intS.notNull);
-        expect(() => errObjS.unbox(`[1,null]`)).toThrow("Unboxing array element 1: Null not allowed");
+        expect(() => errObjS.unbox(`[1,null]`)).toThrow("Unboxing array element 1, value: null: Null not allowed");
     });
 
     test("Implement and call API", async () => {
@@ -336,5 +338,18 @@ describe("Testing type unboxing", () => {
         expect(objectS({ a: stringS }).unbox("null")).toBeNull()
         expect(objectS({ a: stringS }).unbox(null)).toBeNull()
         expect(() => intS.notNull.unbox("null")).toThrow()
+    })
+
+    test("Undefined string should be unboxed as string by default and as undefined value if indicated", () => {
+        expect(stringS.unbox("undefined")).toEqual("undefined")
+        expect(stringS.optional.unbox("undefined", { keepUndefinedString: false })).toBeUndefined()
+        expect(stringS.optional.unbox(undefined)).toBeUndefined()
+        expect(() => stringS.unbox(undefined as any)).toThrow("Field missing")
+        expect(() => stringS.unbox("undefined", { keepUndefinedString: false })).toThrow("Field missing")
+    })
+
+    test("Null string should be unboxed as string if indicated and as null by default", () => {
+        expect(stringS.unbox("null", { keepNullString: true })).toEqual("null")
+        expect(stringS.unbox("null")).toBeNull()
     })
 });

@@ -1,4 +1,5 @@
-import { bigintS, intS, objectS, stringS } from "../src/index"
+import { objectS, arrayS } from "../src/schemas"
+import { bigintS, intS, stringS } from "../src/primitive-types"
 import { tabularInput } from "../src/tabular-input"
 
 describe("Testing tabular input objects", () => {
@@ -6,7 +7,8 @@ describe("Testing tabular input objects", () => {
         id: bigintS,
         name: stringS,
         d1: intS.optional,
-        d2: stringS.optional
+        d2: stringS.optional,
+        arr: arrayS(stringS).optional
     })
 
     test("Should throw an exception if there is nothing interesting in the table", () => {
@@ -15,12 +17,18 @@ describe("Testing tabular input objects", () => {
         )).toThrow()
     })
 
-    test("Should return empty array on header only", () => {
+    test("Should correctly return array of objects", () => {
         expect(tabularInput(tabS,
             `name           id
              "good will"    42
              any            0`
         )).toEqual([{ name: "good will", id: 42n }, { name: "any", id: 0n }])
+    })
+
+    test("Should return empty array on header only", () => {
+        expect(tabularInput(tabS,
+            `name           id`
+        )).toEqual([])
     })
 
     test("Should add defaults to every row", () => {
@@ -44,5 +52,32 @@ describe("Testing tabular input objects", () => {
             any            0
             `, { d1: 1, d2: "q" }
         )).toThrow("Table column 2 missing in row 1")
+    })
+
+    test("Should correctly treat array fields", () => {
+        expect(tabularInput(tabS, `
+            name           id  arr
+            "good will"    42  ["a","b"]
+            any            0   ["c"]
+             `
+        )).toEqual([{ name: "good will", id: 42n, arr: ["a", "b"] }, { name: "any", id: 0n, arr: ["c"] }])
+    })
+
+    test("Should allow null and undefined values", () => {
+        expect(tabularInput(tabS, `
+            name           id  arr
+            null           42  ["a","b"]
+            any            0   undefined
+             `
+        )).toEqual([{ name: null, id: 42n, arr: ["a", "b"] }, { name: "any", id: 0n, arr: undefined }])
+    })
+
+    test("Should pass 'null' and 'undefined' as strings", () => {
+        expect(tabularInput(tabS, `
+            name           id  arr          d2
+            "null"         42  ["a","b"]    bulbul
+            any            0   []           undefined
+             `
+        )).toEqual([{ name: "null", id: 42n, arr: ["a", "b"], d2: "bulbul" }, { name: "any", id: 0n, arr: [] }])
     })
 })

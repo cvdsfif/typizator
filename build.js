@@ -4,9 +4,9 @@ const { dependencies } = require("./package.json");
 const commonConfig = {
     entryPoints: ["./src/index.ts"],
     target: ["esnext", "node20"],
-    bundle: true,
-    minify: true,
-    treeShaking: true,
+    bundle: false,
+    minify: false,
+    treeShaking: false,
     external: Object.keys(dependencies)
 }
 
