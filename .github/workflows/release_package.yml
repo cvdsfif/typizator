@@ -69,7 +69,7 @@ jobs:
       #    path-to-changelog: CHANGELOG.md
       #    version: ${{ env.NEW_VERSION }}
       #    operation: release
-
+      #
       # Commit changes
       - name: Commit CHANGELOG.md and package.json changes and create tag
         run: |
