@@ -28,6 +28,10 @@ jobs:
       - name: Run tests
         run: npm test
 
+      # Build
+      - name: Build project
+        run: npm run build
+
       # Configure Git
       - name: Git configuration
         run: |
