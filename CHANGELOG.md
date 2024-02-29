@@ -7,8 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Updating the release Node.js actions to the latest versions
+Moving the library to the automate release workflow
 
 ### Added
 
-- Changelog
+- ./github/workflows/release_package.yml
+
