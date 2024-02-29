@@ -60,15 +60,12 @@ jobs:
           RELEASE_TYPE: ${{ github.event.inputs.release-type }}
 
       # Update changelog unreleased section with new version
-      # This actually doesn't work because of the incompatibility 
-      # with the latest node version
-      # Waiting for the next release, for now updating the changelog manually
-      # - name: Update changelog
-      #  uses: superfaceai/release-changelog-action@v2
-      #  with:
-      #    path-to-changelog: CHANGELOG.md
-      #    version: ${{ env.NEW_VERSION }}
-      #    operation: release
+      - name: Update changelog
+        uses: superfaceai/release-changelog-action@v2
+        with:
+          path-to-changelog: CHANGELOG.md
+          version: ${{ env.NEW_VERSION }}
+          operation: release
 
       # Commit changes
       # Once the previous section is restored, add the following: git add "CHANGELOG.md"
