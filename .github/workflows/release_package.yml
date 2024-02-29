@@ -68,10 +68,10 @@ jobs:
           operation: release
 
       # Commit changes
-      # Once the previous section is restored, add the following: git add "CHANGELOG.md"
       - name: Commit CHANGELOG.md and package.json changes and create tag
         run: |
           git add "package.json"
+          git add "CHANGELOG.md"
           git commit -m "chore: release ${{ env.NEW_VERSION }}"
           git tag ${{ env.NEW_VERSION }}
 
