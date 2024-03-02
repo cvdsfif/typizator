@@ -371,3 +371,7 @@ expect(tabularInput(tabS, `
     ]
 )
 ```
+
+## Further reading
+
+If you want to know how I wrote this library, refer to ![This article](https://medium.com/@cvds.eu/runtime-types-serialization-and-validation-the-magic-of-typescript-type-model-869579ba1bbf).
