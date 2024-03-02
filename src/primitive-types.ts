@@ -11,6 +11,9 @@ class BigintS extends TypeSchema<bigint, bigint | number | string>{
             typeof source === "string" ? BigInt(integrifyString(source)) :
                 typeof source === "number" ? BigInt(Math.floor(source)) : BigInt(integrifyString(`${source}`));
 }
+/**
+ * Primitive type schema representing a bigint
+ */
 export const bigintS = new BigintS() as ExtendedSchema<bigint, bigint | number | string>;
 
 class StringS extends TypeSchema<string, string | bigint | number>{
@@ -18,6 +21,9 @@ class StringS extends TypeSchema<string, string | bigint | number>{
     get metadata() { return this._metadata; }
     protected convert = (source: string | bigint | number): string => typeof source === "string" ? source : `${source}`
 }
+/**
+ * Primitive type schema representing a string
+ */
 export const stringS = new StringS() as ExtendedSchema<string, string | bigint | number>;
 
 class IntS extends TypeSchema<number, bigint | number | string>{
@@ -31,6 +37,13 @@ class IntS extends TypeSchema<number, bigint | number | string>{
         return returned;
     }
 }
+/**
+ * Primitive type schema representing an integer number
+ * 
+ * When unboxing, drops the part of the number after the decimal point.
+ * If the source of unboxing cannot be converted into a number, throws an error. 
+ * If the converted number is out of the simple number's bounds, throw an error
+ */
 export const intS = new IntS() as ExtendedSchema<number, bigint | number | string>;
 
 class FloatS extends TypeSchema<number, bigint | number | string>{
@@ -42,6 +55,11 @@ class FloatS extends TypeSchema<number, bigint | number | string>{
         return converted;
     }
 }
+/**
+ * Primitive type schema representing a floating point number
+ * 
+ * If the source of unboxing cannot be converted into a number, throws an error. 
+ */
 export const floatS = new FloatS() as ExtendedSchema<number, bigint | number | string>;
 
 export type DateS = ExtendedSchema<Date, Date | string>;
@@ -57,6 +75,11 @@ class DateSImpl extends TypeSchema<Date, Date | string>{
         return source;
     }
 }
+/**
+ * Primitive type representing a Javascript/typescript date
+ * 
+ * If the source is the "now" string, unboxes to the actual date/time
+ */
 export const dateS = new DateSImpl() as DateS
 
 class BoolS extends TypeSchema<boolean, boolean | string | number>{
@@ -76,4 +99,10 @@ class BoolS extends TypeSchema<boolean, boolean | string | number>{
         return source;
     }
 }
+/**
+ * Primitive type representing a boolean
+ * 
+ * Source 0 or "false" is unboxed, to false, source 1 or "true" to true
+ * Illegal values throw an error
+ */
 export const boolS = new BoolS() as ExtendedSchema<boolean, boolean | string | number>;

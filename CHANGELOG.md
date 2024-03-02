@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+Library documented
+
 ## 1.0.0-beta.45 - 2024-02-29
 Moving the library to the automate release workflow
 

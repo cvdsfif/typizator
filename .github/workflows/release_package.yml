@@ -23,7 +23,7 @@ jobs:
       # Install dependencies (required by Run tests step)
       # Next three runs depend on your environment, they could be different for different projects
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --include=dev
 
       # Tests
       - name: Run tests
@@ -92,7 +92,7 @@ jobs:
       # Read version changelog
       - id: get-changelog
         name: Get version changelog
-        uses: superfaceai/release-changelog-action@v1
+        uses: superfaceai/release-changelog-action@v2
         with:
           path-to-changelog: CHANGELOG.md
           version: ${{ env.NEW_VERSION }}

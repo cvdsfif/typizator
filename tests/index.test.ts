@@ -1,4 +1,4 @@
-import { ApiImplementation, ApiMetadata, ArrayMetadata, FieldMissingError, FunctionMetadata, IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, NullNotAllowedError, always, apiS, arrayS, bigintS, boolS, dateS, floatS, intS, objectS, stringS } from "../src";
+import { ApiImplementation, ApiMetadata, ArrayMetadata, FunctionMetadata, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, always, apiS, arrayS, bigintS, boolS, dateS, floatS, intS, objectS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
@@ -32,7 +32,7 @@ describe("Testing type unboxing", () => {
             .toEqual({ id: 12345678901234567890n, name: "Any name" });
         expect(simpleRecordS.unbox({ id: 12345678901234567890n }))
             .toEqual({ id: 12345678901234567890n, name: undefined });
-        expect(simpleRecordS.unbox({ id: 12345678901234567890n, name: undefined }))
+        expect(simpleRecordS.unbox({ id: 12345678901234567890n }))
             .toEqual({ id: 12345678901234567890n });
     });
 

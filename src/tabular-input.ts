@@ -3,6 +3,12 @@ import { SchemaSource, SchemaTarget } from "./type-conversions"
 
 const splitLine = (s: string) => s.match(/(?:[^\s"']+|['"][^'"]*["'])+/g)!
 
+/**
+ * Transforms a string to an array of objects containing a string for each column
+ * @param source Source multiline string, first line is a list of field names, the following ones, list of records
+ * @param defaults Default values to add to each record if there are no corresponding values in the input string
+ * @returns Array of objects
+ */
 export const transformToArray = <T extends SchemaDefinition>
     (
         source: string,
@@ -31,6 +37,13 @@ export const transformToArray = <T extends SchemaDefinition>
         })
 }
 
+/**
+ * Transforms a multiline input string to a well-typed object
+ * @param schema Schema defining the object's types
+ * @param source Source string
+ * @param defaults Default values to add to each record if there are no corresponding values in the input string
+ * @returns Array of well-typed objects
+ */
 export const tabularInput =
     <T extends SchemaDefinition>
         (
