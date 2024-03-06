@@ -26,6 +26,41 @@ export interface TypedMetadata {
      */
     optional: boolean
 }
+
+/**
+ * Facade exposing a map child schemas of the schema object
+ */
+export type FieldsMap = {
+    /**
+     * Get the field's schema by field name
+     * @param fieldName Field's name
+     * @returns Schema object for the named field or undefined if the field does not exist
+     */
+    get: (fieldName: string) => Schema | undefined,
+    /**
+     * Executes for each key of the underlying object 
+     * @param func Function to execute for each field of the object
+     */
+    forEach: (func: (fieldName: string, schema: Schema) => void) => void
+
+    get size(): number
+}
+
+class FieldsMapFacade<T extends SchemaDefinition> implements FieldsMap {
+    constructor(private definition: T) { }
+
+    get = (fieldName: string) => this.definition[fieldName]
+
+    forEach = (func: (fieldName: string, schema: Schema) => void) => {
+        Object.keys(this.definition).forEach(key => func(key, this.definition[key]))
+    }
+
+    /**
+     * Returns the number of fields (and thus field schemas) returned by the object
+     */
+    get size() { return Object.keys(this.definition).length }
+}
+
 /**
  * Metadata for the object schema
  */
@@ -34,7 +69,7 @@ export interface ObjectMetadata extends TypedMetadata {
     /**
      * Map of schemas for every field of the object
      */
-    fields: Map<String, Schema>
+    fields: FieldsMap
 }
 /**
  * Metadata for the array schema
@@ -217,6 +252,7 @@ export type ExtractFromFacade<T> =
     T extends OptionalFacade<any, any, any, infer S> ? S :
     T;
 
+
 /**
  * Object schema representing a Typescript/Javascript object
  */
@@ -233,24 +269,23 @@ class ObjectSImpl<T extends SchemaDefinition>
         super();
         this._metadata = {
             dataType: "object",
-            fields: new Map<String, Schema>(),
+            fields: new FieldsMapFacade<T>(definition),
             notNull: false,
             optional: false
         }
-        Object.keys(definition).forEach(key => this._metadata.fields.set(key, definition[key]));
     }
 
     protected convert = (source: SchemaSource<T>, props?: UnboxingProperties): SchemaTarget<T> => {
         const sourceConverted =
             typeof source === "string" ? JSONBig.parse(source) : source
-        const convertedObject = {} as SchemaTarget<T>;
-        for (const [key, schema] of this._metadata.fields.entries()) {
+        const convertedObject = {} as SchemaTarget<T>
+        this._metadata.fields.forEach((key, schema) => {
             try {
                 (convertedObject as any)[key as string] = schema.unbox(sourceConverted[key as string], props)
             } catch (e: any) {
                 throw new Error(`Unboxing ${key}, value: ${sourceConverted[key as string]}: ${e.message}`);
             }
-        }
+        })
         return convertedObject;
     }
 }
