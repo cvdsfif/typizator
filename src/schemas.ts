@@ -42,6 +42,11 @@ export type FieldsMap = {
      * @param func Function to execute for each field of the object
      */
     forEach: (func: (fieldName: string, schema: Schema) => void) => void
+    /**
+     * Executes for each key of the underlying object and returns the value for each iteration
+     * @param func Function to execute for each field of the object
+     */
+    map: (func: (fieldName: string, schema: Schema) => any) => any[]
 
     get size(): number
 }
@@ -54,6 +59,9 @@ class FieldsMapFacade<T extends SchemaDefinition> implements FieldsMap {
     forEach = (func: (fieldName: string, schema: Schema) => void) => {
         Object.keys(this.definition).forEach(key => func(key, this.definition[key]))
     }
+
+    map = (func: (fieldName: string, schema: Schema) => any) =>
+        Object.keys(this.definition).map(key => func(key, this.definition[key]))
 
     /**
      * Returns the number of fields (and thus field schemas) returned by the object
