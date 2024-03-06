@@ -250,7 +250,39 @@ describe("Testing type unboxing", () => {
         const simpleArrayS = arrayS(simpleRecordS);
         expect(simpleArrayS.metadata.dataType).toEqual("array");
         expect((simpleArrayS.metadata as ArrayMetadata).elements.metadata.dataType).toEqual("object");
-    });
+    })
+
+    test("Correctly map the schema metadata", () => {
+        const simpleRecordS = objectS({
+            id: bigintS.notNull,
+            name: stringS,
+            opt: intS.optional,
+            dateField: dateS.byDefault(new Date("1984-01-01")),
+            boolField: boolS,
+            floatField: floatS
+        });
+        expect(simpleRecordS.metadata.dataType).toEqual("object");
+        const fieldsMetadata = simpleRecordS.metadata;
+        const names = fieldsMetadata.fields.map((fieldName, _) => fieldName)
+        expect(names).toEqual(["id", "name", "opt", "dateField", "boolField", "floatField"])
+    })
+
+    test("Correctly filter the schema metadata", () => {
+        const simpleRecordS = objectS({
+            id: bigintS.notNull,
+            name: stringS,
+            opt: intS.optional,
+            dateField: dateS.byDefault(new Date("1984-01-01")),
+            boolField: boolS,
+            floatField: floatS
+        });
+        expect(simpleRecordS.metadata.dataType).toEqual("object");
+        const fieldsMetadata = simpleRecordS.metadata;
+        const names = fieldsMetadata.fields
+            .filter((fieldName, _) => fieldName === "id")
+            .map(({ key, schema }) => `${key}:${schema.metadata.dataType}`)
+        expect(names).toEqual(["id:bigint"])
+    })
 
     test("Should throw informative error if there is an exception unboxing an object field", () => {
         const errObjS = objectS({

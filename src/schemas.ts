@@ -47,13 +47,13 @@ export type FieldsMap = {
      * @param func Function to execute for each field of the object
      * @returns Array of objects returned from each consecutive field
      */
-    map: (func: (fieldName: string, schema: Schema) => Schema) => Schema[]
+    map: <T>(func: (fieldName: string, schema: Schema) => T) => T[]
     /**
      * Returns only the fields matching the condition implemented by the function
      * Function returning true
      * @param func Function checking each field in the object. If true, the schema is added to the resulting array
      */
-    filter: (func: (fieldName: string, schema: Schema) => Schema) => Schema[]
+    filter: (func: (fieldName: string, schema: Schema) => boolean) => { key: string, schema: Schema }[]
 
     /**
      * Returns the number of fields (and thus field schemas) returned by the object
@@ -70,13 +70,13 @@ class FieldsMapFacade<T extends SchemaDefinition> implements FieldsMap {
         Object.keys(this.definition).forEach(key => func(key, this.definition[key]))
     }
 
-    map = (func: (fieldName: string, schema: Schema) => any) =>
+    map = <T>(func: (fieldName: string, schema: Schema) => T) =>
         Object.keys(this.definition).map(key => func(key, this.definition[key]))
 
-    filter = (func: (fieldName: string, schema: Schema) => any) =>
+    filter = (func: (fieldName: string, schema: Schema) => boolean) =>
         Object.keys(this.definition)
             .filter(key => func(key, this.definition[key]))
-            .map(key => func(key, this.definition[key]))
+            .map(key => ({ key, schema: this.definition[key] }))
 
     get size() { return Object.keys(this.definition).length }
 }
