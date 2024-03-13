@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 2.3.0 - 2024-03-13
 Names and paths for the `apiS` metadata. Documentation for `apiS` part of the library
 
 ## 2.2.0 - 2024-03-07
