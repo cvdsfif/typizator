@@ -337,7 +337,25 @@ describe("Testing type unboxing", () => {
         expect(subApiData.members.get("world")?.dataType).toEqual("function");
         expect((simpleApiS.metadata.members.get("noMeow") as FunctionMetadata).dataType).toEqual("function");
         expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string");
-    });
+    })
+
+    test("API metadata should contain names and path information", () => {
+        const cruelApi = {
+            world: { args: [stringS.notNull], retVal: stringS.notNull }
+        }
+        const simpleApiS = apiS({
+            meow: { args: [], retVal: stringS.notNull },
+            noMeow: { args: [] },
+            helloWorld: { args: [stringS.notNull, bigintS.notNull], retVal: stringS.notNull },
+            cruel: cruelApi
+        })
+        expect(simpleApiS.metadata.name).toEqual("")
+        expect(simpleApiS.metadata.members.get("cruel")!.name).toEqual("cruel")
+        expect((simpleApiS.metadata.members.get("cruel")! as ApiMetadata<typeof cruelApi>).members.get("world")!.path).toEqual("/cruel/world")
+        expect(simpleApiS.metadata.implementation.cruel.path).toEqual("/cruel")
+        expect(simpleApiS.metadata.implementation.cruel.world.path).toEqual("/cruel/world")
+        expect(simpleApiS.metadata.implementation.cruel.world.name).toEqual("world")
+    })
 
     test("Bigint should correctly unbox float number strings and numbers", () => {
         expect(bigintS.unbox("42.00000")).toEqual(42n)
@@ -383,5 +401,19 @@ describe("Testing type unboxing", () => {
     test("Null string should be unboxed as string if indicated and as null by default", () => {
         expect(stringS.unbox("null", { keepNullString: true })).toEqual("null")
         expect(stringS.unbox("null")).toBeNull()
+    })
+
+    test("Should correctly unbox types with subtypes", () => {
+        const innerTypeS = objectS({
+            id: intS,
+            name: stringS
+        }).notNull
+        const complexType = objectS({
+            id: bigintS,
+            child: arrayS(innerTypeS).notNull
+        })
+
+        expect(complexType.unbox({ id: 1, child: [{ id: 1, name: "a" }, { id: 2, name: "b" }] }))
+            .toEqual({ id: 1n, child: [{ id: 1, name: "a" }, { id: 2, name: "b" }] })
     })
 });
