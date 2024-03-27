@@ -47,11 +47,11 @@ export type FunctionMetadata = {
 /**
  * List of function definitions and sub-apis
  * 
- * The field name can be any valid typescript identifier except *name* and *path*
+ * The field name can be any valid typescript identifier except **name**, **path** and **metadata**
  */
 export type ApiDefinition = {
     [K: string]: FunctionCallDefinition | ApiDefinition
-}
+} & { name?: never, path?: never, metadata?: never }
 /**
  * Reproduces the API tree but with additional information like names and paths
  * This is the preferred way to access the API metadata, the members map will be deprecated soon

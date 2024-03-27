@@ -3,7 +3,11 @@ import { ExtendedSchema, PrimitiveSchemaTypes, TypeSchema } from "./schemas";
 
 const integrifyString = (s: string) => s.replace(/[\.|,][0-9]*$/, "")
 const defaultMetadata = (dataType: PrimitiveSchemaTypes) => ({ dataType, notNull: false, optional: false });
-class BigintS extends TypeSchema<bigint, bigint | number | string>{
+/**
+ * Type for the bigint schema.
+ */
+export type BigintS = ExtendedSchema<bigint, bigint | number | string>
+class BigintSImpl extends TypeSchema<bigint, bigint | number | string>{
     private _metadata = defaultMetadata("bigint");
     get metadata() { return this._metadata; }
     protected convert = (source: bigint | number | string): bigint =>
@@ -14,9 +18,13 @@ class BigintS extends TypeSchema<bigint, bigint | number | string>{
 /**
  * Primitive type schema representing a bigint
  */
-export const bigintS = new BigintS() as ExtendedSchema<bigint, bigint | number | string>;
+export const bigintS = new BigintSImpl() as BigintS
 
-class StringS extends TypeSchema<string, string | bigint | number>{
+/**
+ * Type for the string schema.
+ */
+export type StringS = ExtendedSchema<string, string | bigint | number>
+class StringSImpl extends TypeSchema<string, string | bigint | number>{
     private _metadata = defaultMetadata("string");
     get metadata() { return this._metadata; }
     protected convert = (source: string | bigint | number): string => typeof source === "string" ? source : `${source}`
@@ -24,9 +32,13 @@ class StringS extends TypeSchema<string, string | bigint | number>{
 /**
  * Primitive type schema representing a string
  */
-export const stringS = new StringS() as ExtendedSchema<string, string | bigint | number>;
+export const stringS = new StringSImpl() as StringS
 
-class IntS extends TypeSchema<number, bigint | number | string>{
+/**
+ * Type for the int schema.
+ */
+export type IntS = ExtendedSchema<number, bigint | number | string>
+class IntSImpl extends TypeSchema<number, bigint | number | string>{
     private _metadata = defaultMetadata("int");
     get metadata() { return this._metadata; }
     protected convert = (source: number | bigint | string): number => {
@@ -44,9 +56,13 @@ class IntS extends TypeSchema<number, bigint | number | string>{
  * If the source of unboxing cannot be converted into a number, throws an error. 
  * If the converted number is out of the simple number's bounds, throw an error
  */
-export const intS = new IntS() as ExtendedSchema<number, bigint | number | string>;
+export const intS = new IntSImpl() as IntS
 
-class FloatS extends TypeSchema<number, bigint | number | string>{
+/**
+ * Type for the float schema.
+ */
+export type FloatS = ExtendedSchema<number, bigint | number | string>
+class FloatSImpl extends TypeSchema<number, bigint | number | string>{
     private _metadata = defaultMetadata("float");
     get metadata() { return this._metadata; }
     protected convert = (source: number | bigint | string): number => {
@@ -60,9 +76,12 @@ class FloatS extends TypeSchema<number, bigint | number | string>{
  * 
  * If the source of unboxing cannot be converted into a number, throws an error. 
  */
-export const floatS = new FloatS() as ExtendedSchema<number, bigint | number | string>;
+export const floatS = new FloatSImpl() as FloatS
 
-export type DateS = ExtendedSchema<Date, Date | string>;
+/**
+ * Type for the date schema.
+ */
+export type DateS = ExtendedSchema<Date, Date | string>
 class DateSImpl extends TypeSchema<Date, Date | string>{
     private _metadata = defaultMetadata("date");
     get metadata() { return this._metadata; }
@@ -82,7 +101,11 @@ class DateSImpl extends TypeSchema<Date, Date | string>{
  */
 export const dateS = new DateSImpl() as DateS
 
-class BoolS extends TypeSchema<boolean, boolean | string | number>{
+/**
+ * Type for the boolean schema.
+ */
+export type BoolS = ExtendedSchema<boolean, boolean | string | number>
+class BoolSImpl extends TypeSchema<boolean, boolean | string | number>{
     private _metadata = defaultMetadata("bool");
     get metadata() { return this._metadata; }
     protected convert = (source: boolean | string | number): boolean => {
@@ -105,4 +128,4 @@ class BoolS extends TypeSchema<boolean, boolean | string | number>{
  * Source 0 or "false" is unboxed, to false, source 1 or "true" to true
  * Illegal values throw an error
  */
-export const boolS = new BoolS() as ExtendedSchema<boolean, boolean | string | number>;
+export const boolS = new BoolSImpl() as BoolS
