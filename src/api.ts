@@ -54,13 +54,12 @@ export type ApiDefinition = {
 } & { name?: never, path?: never, metadata?: never }
 /**
  * Reproduces the API tree but with additional information like names and paths
- * This is the preferred way to access the API metadata, the members map will be deprecated soon
  */
 export type MetadataMembersImplementation<T extends ApiDefinition> = {
     [K in keyof T]:
     T[K] extends ApiDefinition ?
-    MetadataMembersImplementation<T[K]> & NamedMetadata & { metadata: ApiMetadata<T[K]> } :
-    T[K] & NamedMetadata & { metadata: FunctionMetadata }
+    MetadataMembersImplementation<T[K]> & { metadata: ApiMetadata<T[K]> } :
+    T[K] & { metadata: FunctionMetadata }
 }
 /**
  * Metadata for the API endpoint
@@ -70,11 +69,6 @@ export type ApiMetadata<T extends ApiDefinition> = {
      * Allows to make the difference between functions and sub-apis
      */
     dataType: "api",
-    /**
-     * @deprecated
-     * Map of members metadata. Will be deprecated soon because doesn't offer anything interesting compared to _implementation_
-     */
-    members: Map<keyof T, FunctionMetadata | ApiMetadata<any>>,
     /**
      * Objects metadata tree reproducing the API structure
      */
@@ -91,18 +85,10 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
     private readonly _metadata: ApiMetadata<T>;
     public get metadata() { return this._metadata; }
     private extractMetadata = <D extends ApiDefinition>(definition: D, metadataName = "", parentPath = ""): ApiMetadata<D> => {
-        const result = new Map<keyof D, FunctionMetadata | ApiMetadata<ApiDefinition>>();
         const impl = {} as MetadataMembersImplementation<D>;
         Object.keys(definition).forEach(key => {
             const field = definition[key];
             if (typeof field.args === "object") {
-                result.set(key, {
-                    dataType: "function",
-                    args: field.args,
-                    retVal: field.retVal,
-                    name: key,
-                    path: `${parentPath}${metadataName}/${key}`
-                } as FunctionMetadata);
                 (impl as any)[key] = {
                     ...definition[key],
                     name: key,
@@ -117,7 +103,6 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
                 }
             } else {
                 const child = this.extractMetadata(field as ApiDefinition, key, `${parentPath}${metadataName}/`);
-                result.set(key, child);
                 (impl as any)[key] = {
                     ...child.implementation,
                     name: key,
@@ -128,7 +113,6 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
         });
         return ({
             dataType: "api",
-            members: result,
             implementation: impl,
             name: metadataName,
             path: `${parentPath}${metadataName}`

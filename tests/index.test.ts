@@ -307,7 +307,7 @@ describe("Testing type unboxing", () => {
             cruel: cruelApi
         });
 
-        let isMeow = true;
+        let isMeow = true
         const implementation = {
             meow: async () => Promise.resolve("Miaou!"),
             noMeow: async () => { isMeow = false; Promise.resolve(); },
@@ -315,7 +315,7 @@ describe("Testing type unboxing", () => {
             cruel: {
                 world: async (val: string) => Promise.resolve(`${val}, this world is cruel`)
             }
-        };
+        }
         const caller: ApiImplementation<typeof simpleApiS> = implementation;
 
         expect(await caller.meow()).toEqual("Miaou!");
@@ -326,16 +326,16 @@ describe("Testing type unboxing", () => {
         expect(await caller.cruel.world("Oyvey")).toEqual("Oyvey, this world is cruel");
 
         expect(simpleApiS.metadata.dataType).toEqual("api");
-        const helloWorld = simpleApiS.metadata.members.get("helloWorld") as FunctionMetadata;
-        expect(helloWorld.dataType).toEqual("function");
+        const helloWorld = simpleApiS.metadata.implementation.helloWorld;
+        expect(helloWorld.metadata.dataType).toEqual("function");
         expect(helloWorld.args[0].metadata.dataType).toEqual("string");
         expect(helloWorld.args[1].metadata.dataType).toEqual("bigint");
         expect(helloWorld.args[1].unbox("42")).toEqual(42n);
         expect(helloWorld.retVal.metadata.dataType).toEqual("string");
-        expect(simpleApiS.metadata.members.get("cruel")?.dataType).toEqual("api");
-        const subApiData = simpleApiS.metadata.members.get("cruel") as ApiMetadata<typeof cruelApi>;
-        expect(subApiData.members.get("world")?.dataType).toEqual("function");
-        expect((simpleApiS.metadata.members.get("noMeow") as FunctionMetadata).dataType).toEqual("function");
+        expect(simpleApiS.metadata.implementation.cruel.metadata.dataType).toEqual("api");
+        const subApiData = simpleApiS.metadata.implementation.cruel;
+        expect(subApiData.world.metadata.dataType).toEqual("function");
+        expect(simpleApiS.metadata.implementation.noMeow.metadata.dataType).toEqual("function");
         expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string");
     })
 
@@ -369,20 +369,16 @@ describe("Testing type unboxing", () => {
         expect(await caller.cruel.world("Oyvey")).toEqual("Oyvey, this world is cruel");
 
         expect(simpleApiS.metadata.dataType).toEqual("api");
-        //const helloWorld = simpleApiS.metadata.members.get("helloWorld") as FunctionMetadata;
         const helloWorld = simpleApiS.metadata.implementation.helloWorld.metadata
         expect(helloWorld.dataType).toEqual("function");
         expect(helloWorld.args[0].metadata.dataType).toEqual("string");
         expect(helloWorld.args[1].metadata.dataType).toEqual("bigint");
         expect(helloWorld.args[1].unbox("42")).toEqual(42n);
         expect(helloWorld.retVal.metadata.dataType).toEqual("string");
-        //expect(simpleApiS.metadata.members.get("cruel")?.dataType).toEqual("api");
         expect(simpleApiS.metadata.implementation.cruel.metadata.dataType).toEqual("api")
-        //const subApiData = simpleApiS.metadata.members.get("cruel") as ApiMetadata<typeof cruelApi>;
         const subApiData = simpleApiS.metadata.implementation.cruel.metadata
-        //expect(subApiData.members.get("world")?.dataType).toEqual("function");
         expect(subApiData.implementation.world.metadata.dataType).toEqual("function");
-        expect((simpleApiS.metadata.members.get("noMeow") as FunctionMetadata).dataType).toEqual("function");
+        expect(simpleApiS.metadata.implementation.noMeow.metadata.dataType).toEqual("function");
         expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string");
     })
 
@@ -397,12 +393,10 @@ describe("Testing type unboxing", () => {
             cruel: cruelApi
         })
         expect(simpleApiS.metadata.name).toEqual("")
-        expect(simpleApiS.metadata.members.get("cruel")!.name).toEqual("cruel")
-        expect(simpleApiS.metadata.implementation.cruel.name).toEqual("cruel")
-        expect((simpleApiS.metadata.members.get("cruel")! as ApiMetadata<typeof cruelApi>).members.get("world")!.path).toEqual("/cruel/world")
-        expect(simpleApiS.metadata.implementation.cruel.path).toEqual("/cruel")
-        expect(simpleApiS.metadata.implementation.cruel.world.path).toEqual("/cruel/world")
-        expect(simpleApiS.metadata.implementation.cruel.world.name).toEqual("world")
+        expect(simpleApiS.metadata.implementation.cruel.metadata.name).toEqual("cruel")
+        expect(simpleApiS.metadata.implementation.cruel.metadata.path).toEqual("/cruel")
+        expect(simpleApiS.metadata.implementation.cruel.world.metadata.path).toEqual("/cruel/world")
+        expect(simpleApiS.metadata.implementation.cruel.world.metadata.name).toEqual("world")
     })
 
 
