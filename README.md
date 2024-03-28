@@ -263,16 +263,11 @@ expect(await caller.helloWorld("test", 12345678901234567890n))
 expect(await caller.cruel.world("Oyvey")).toEqual("Oyvey, this world is cruel")
 
 expect(simpleApiS.metadata.dataType).toEqual("api")
-const helloWorld = simpleApiS.metadata.members.get("helloWorld") as FunctionMetadata
 expect(helloWorld.dataType).toEqual("function")
 expect(helloWorld.args[0].metadata.dataType).toEqual("string")
 expect(helloWorld.args[1].metadata.dataType).toEqual("bigint")
 expect(helloWorld.args[1].unbox("42")).toEqual(42n)
 expect(helloWorld.retVal.metadata.dataType).toEqual("string")
-expect(simpleApiS.metadata.members.get("cruel")?.dataType).toEqual("api")
-const subApiData = simpleApiS.metadata.members.get("cruel") as ApiMetadata<typeof cruelApi>
-expect(subApiData.members.get("world")?.dataType).toEqual("function")
-expect((simpleApiS.metadata.members.get("noMeow") as FunctionMetadata).dataType).toEqual("function")
 expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string")
 ```
 
