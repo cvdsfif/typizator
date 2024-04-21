@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ## 3.0.1 - 2024-03-28
-Minot documentation update
+Minor documentation update
 
 ## 3.0.0 - 2024-03-28
 Migrated to Typescript 5.4

@@ -1,4 +1,4 @@
-import { ApiImplementation, ApiMetadata, ArrayMetadata, FunctionMetadata, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, always, apiS, arrayS, bigintS, boolS, dateS, floatS, intS, objectS, stringS } from "../src";
+import { ApiImplementation, ApiMetadata, ArrayMetadata, FunctionMetadata, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, always, apiS, arrayS, bigintS, boolS, dateS, floatS, getSchemaSignature, intS, objectS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
@@ -342,13 +342,13 @@ describe("Testing type unboxing", () => {
     test("Implement and call API: using implementation instead of deprecated members", async () => {
         const cruelApi = {
             world: { args: [stringS.notNull], retVal: stringS.notNull }
-        };
+        }
         const simpleApiS = apiS({
             meow: { args: [], retVal: stringS.notNull },
             noMeow: { args: [] },
             helloWorld: { args: [stringS.notNull, bigintS.notNull], retVal: stringS.notNull },
             cruel: cruelApi
-        });
+        })
 
         let isMeow = true;
         const implementation = {
@@ -358,7 +358,7 @@ describe("Testing type unboxing", () => {
             cruel: {
                 world: async (val: string) => Promise.resolve(`${val}, this world is cruel`)
             }
-        };
+        }
         const caller: ApiImplementation<typeof simpleApiS> = implementation;
 
         expect(await caller.meow()).toEqual("Miaou!");
@@ -459,4 +459,92 @@ describe("Testing type unboxing", () => {
         expect(complexType.unbox({ id: 1, child: [{ id: 1, name: "a" }, { id: 2, name: "b" }] }))
             .toEqual({ id: 1n, child: [{ id: 1, name: "a" }, { id: 2, name: "b" }] })
     })
-});
+
+    test("Should return the schema's signature", () => {
+        // GIVEN an object
+        const objectToSignS = objectS({
+            str: stringS.notNull,
+            num: intS.optional,
+            dat: dateS,
+            def: bigintS.byDefault(0n),
+            defOpt: stringS.byDefault("0").optional,
+            arr: arrayS(boolS).notNull
+        })
+
+        // WHEN asking for the signature
+        const signature = getSchemaSignature(objectToSignS)
+
+        // THEN a correct signature is returnes
+        expect(signature).toEqual("{str:string.NN,num:int.OPT,dat:date,def:bigint.DEF,defOpt:string.OPT.DEF,arr:bool[].NN}")
+    })
+
+    test("Should not recreate identical objects", () => {
+        // GIVEN the source schema
+        const sourceSchema = {
+            str: stringS.notNull,
+            num: intS.optional,
+            dat: dateS,
+            arr: arrayS(boolS).notNull
+        }
+
+        // WHEN creating two objects schema from the same source
+        const s1 = objectS(sourceSchema)
+        const s2 = objectS(sourceSchema)
+
+        // THEN the two schemas are effectively the same object
+        expect(Object.is(s1, s2)).toBeTruthy()
+    })
+
+    test("Should recreate identical objects if there are default rules inside", () => {
+        // GIVEN the source schema
+        const sourceSchema = {
+            str: stringS.notNull,
+            num: intS.optional,
+            dat: dateS,
+            def: bigintS.byDefault(0n),
+            arr: arrayS(boolS).notNull
+        }
+
+        // WHEN creating two objects schema from the same source
+        const s1 = objectS(sourceSchema)
+        const s2 = objectS(sourceSchema)
+
+        // THEN the two schemas are not the same object
+        expect(Object.is(s1, s2)).toBeFalsy()
+    })
+
+    test("Should not recreate identical arrays", () => {
+        // GIVEN the source schema
+        const sourceSchema = {
+            str: stringS.notNull,
+            num: intS.optional,
+            dat: dateS,
+            arr: arrayS(boolS).notNull
+        }
+
+        // WHEN creating two objects schema from the same source
+        const s1 = arrayS(objectS(sourceSchema)).notNull
+        const s2 = arrayS(objectS(sourceSchema)).notNull
+
+        // THEN the two schemas are effectively the same object
+        expect(Object.is(s1, s2)).toBeTruthy()
+    })
+
+    test("Should recreate identical arrays if there are default rules inside", () => {
+        // GIVEN the source schema
+        const sourceSchema = {
+            str: stringS.notNull,
+            num: intS.optional,
+            dat: dateS,
+            def: bigintS.byDefault(0n),
+            arr: arrayS(boolS).notNull
+        }
+
+        // WHEN creating two objects schema from the same source
+        const s1 = arrayS(objectS(sourceSchema)).notNull
+        const s2 = arrayS(objectS(sourceSchema)).notNull
+
+        // THEN the two schemas are not the same object
+        expect(Object.is(s1, s2)).toBeFalsy()
+    })
+})

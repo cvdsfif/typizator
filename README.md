@@ -226,6 +226,21 @@ expect(simpleArrayS.metadata.dataType).toEqual("array")
 expect((simpleArrayS.metadata as ArrayMetadata).elements.metadata.dataType).toEqual("object")
 ```
 
+You can also get the schema structure data as one string by calling `getSchemaSignature`. For example the following schema:
+
+```ts
+const objectToSignS = objectS({
+    str: stringS.notNull,
+    num: intS.optional,
+    dat: dateS,
+    def: bigintS.byDefault(0n),
+    defOpt: stringS.byDefault("0").optional,
+    arr: arrayS(boolS).notNull
+})
+```
+
+will have `{str:string.NN,num:int.OPT,dat:date,def:bigint.DEF,defOpt:string.OPT.DEF,arr:bool[].NN}` as a signature
+
 ### API definition
 
 Sometimes, you need to define a well-typed API that is usable both on the client and on the server side. Schemas and type transformations allow you to do that:
