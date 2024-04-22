@@ -37,6 +37,7 @@ export type SchemaSource<T extends SchemaDefinition> =
     } & {
         [K in keyof T as T[K] extends OptionalFacade<any, any, any, any> ? K : never]?: InferSourceFromSchema<T[K]>;
     } | string;
+
 /**
  * Transform a schema to its target type making the `.optional` fields optional
  * 
@@ -65,6 +66,7 @@ export type InferTargetFromSchema<T> =
     T extends OptionalFacade<infer Target, any, any, any> ? Target | undefined | null :
     T extends Schema<infer Target, any> ? Target | null :
     void
+
 /**
  * Extracts target type from the `objectS` schema's argument
  */

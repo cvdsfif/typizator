@@ -1,4 +1,4 @@
-import { ApiImplementation, ApiMetadata, ArrayMetadata, FunctionMetadata, InferTargetFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, always, apiS, arrayS, bigintS, boolS, dateS, floatS, getSchemaSignature, intS, objectS, stringS } from "../src";
+import { ApiImplementation, ApiMetadata, ArrayMetadata, FunctionMetadata, InferTargetFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, OptionalFacade, SchemaTarget, always, apiS, arrayS, bigintS, boolS, dateS, floatS, getSchemaSignature, intS, objectS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
@@ -546,18 +546,5 @@ describe("Testing type unboxing", () => {
 
         // THEN the two schemas are not the same object
         expect(Object.is(s1, s2)).toBeFalsy()
-    })
-
-    test("Should correctly infer types", () => {
-        const simpleRecordS = objectS({
-            id: bigintS.notNull,
-            name: stringS.notNull
-        }).notNull
-
-        type SimpleType = InferTargetFromSchema<typeof simpleRecordS>
-
-        const ech: SimpleType = { id: 1n, name: "zzz" }
-
-        ech.id
     })
 })

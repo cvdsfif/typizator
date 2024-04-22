@@ -137,7 +137,7 @@ export interface Schema<
     /**
      * Runtime information about the schema object
      */
-    get metadata(): MetadataForSchema<Original>,
+    metadata: MetadataForSchema<Original>,
     /**
      * Converts the loosely-typed source to the exact type defined by the schema
      * @param source Source that can be of a type that can be converted to one defined by the schema
@@ -176,6 +176,7 @@ export interface ExtendedSchema<
 
 export interface NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
     extends Schema<Target, Sources, NotNull, Original> {
+    readonly notNull: true
 }
 
 class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
@@ -188,7 +189,7 @@ class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original ex
         return this.#metadata
     }
 
-    constructor(internal: Original) {
+    constructor(internal: Original, public readonly notNull = true as true) {
         this.#metadata = {
             ...internal.metadata as MetadataForSchema<Original>,
             notNull: true,
@@ -196,6 +197,7 @@ class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original ex
         }
         this.#unbox = internal.unbox
     }
+
     /** {@inheritdoc Schema.unbox} */
     unbox = (source: Sources, props?: UnboxingProperties): Target => {
         if (source === null || (props?.keepNullString !== true && source === "null")) throw new NullNotAllowedError();
@@ -205,9 +207,10 @@ class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original ex
 
 export interface OptionalFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
     extends Schema<Target, Sources, Optional, Original> {
+    readonly optional: true
 }
 
-export class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
+class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
     implements OptionalFacade<Target, Sources, B, Original> {
     readonly #metadata: MetadataForSchema<Original>
     readonly #unbox
@@ -216,7 +219,7 @@ export class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Ori
     get metadata() {
         return this.#metadata
     }
-    constructor(internal: Original) {
+    constructor(internal: Original, public readonly optional = true as true) {
         this.#metadata = {
             ...internal.metadata as MetadataForSchema<Original>,
             notNull: false,
@@ -288,7 +291,7 @@ export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultB
 
     #notNull = undefined as NotNullFacade<Target, Sources, B, this> | undefined
     /** {@inheritdoc ExtendedSchema.unbox} */
-    get notNull() {
+    get notNull(): NotNullFacade<Target, Sources, B, this> {
         if (!this.#notNull) this.#notNull = new NotNullFacadeImpl<Target, Sources, B, this>(this)
         return this.#notNull
     }
@@ -402,7 +405,7 @@ class ObjectFactory {
     static #instance = new ObjectFactory()
     static get instance() { return this.#instance }
     private constructor() { }
-    getOrCreateObject = <T extends SchemaDefinition>(schema: T) => {
+    getOrCreateObject = <T extends SchemaDefinition>(schema: T): ObjectS<T> => {
         const signature = getSchemaSignature(schema)
         if (signature.indexOf(".DEF") > 0) return new ObjectSImpl(schema) as ObjectS<T>
         if (!this.#store[signature]) this.#store[signature] = new ObjectSImpl(schema) as ObjectS<T>
