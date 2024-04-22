@@ -485,7 +485,7 @@ class ArrayFactory {
     static #instance = new ArrayFactory()
     static get instance() { return this.#instance }
     private constructor() { }
-    getOrCreateArray = <S extends Schema>(schema: S) => {
+    getOrCreateArray = <S extends Schema>(schema: S): ArrayS<S> => {
         const signature = getSchemaSignature(schema)
         if (signature.indexOf(".DEF") > 0) return new ArraySImpl(schema) as ArrayS<S>
         if (!this.#store[signature]) this.#store[signature] = new ArraySImpl(schema) as ArrayS<S>
