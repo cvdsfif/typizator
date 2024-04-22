@@ -174,8 +174,12 @@ export interface ExtendedSchema<
         ByDefaultFacade<Target, Sources, B, this>
 }
 
-export class NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
-    implements Schema<Target, Sources, NotNull, Original> {
+export interface NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
+    extends Schema<Target, Sources, NotNull, Original> {
+}
+
+class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
+    implements NotNullFacade<Target, Sources, B, Original> {
     readonly #metadata: MetadataForSchema<Original>
     readonly #unbox
 
@@ -199,8 +203,12 @@ export class NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original
     }
 }
 
-export class OptionalFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
-    implements Schema<Target, Sources, Optional, Original> {
+export interface OptionalFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
+    extends Schema<Target, Sources, Optional, Original> {
+}
+
+export class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
+    implements OptionalFacade<Target, Sources, B, Original> {
     readonly #metadata: MetadataForSchema<Original>
     readonly #unbox
 
@@ -254,7 +262,7 @@ class ByDefaultFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original 
     #optional = undefined as OptionalFacade<Target, Sources, B, any> | undefined
     /** {@inheritdoc ExtendedSchema.optional} */
     get optional() {
-        if (!this.#optional) this.#optional = new OptionalFacade<Target, Sources, B, this>(this as any)
+        if (!this.#optional) this.#optional = new OptionalFacadeImpl<Target, Sources, B, this>(this as any)
         return this.#optional
     }
     /** {@inheritdoc Schema.unbox} */
@@ -281,14 +289,14 @@ export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultB
     #notNull = undefined as NotNullFacade<Target, Sources, B, this> | undefined
     /** {@inheritdoc ExtendedSchema.unbox} */
     get notNull() {
-        if (!this.#notNull) this.#notNull = new NotNullFacade<Target, Sources, B, this>(this)
+        if (!this.#notNull) this.#notNull = new NotNullFacadeImpl<Target, Sources, B, this>(this)
         return this.#notNull
     }
 
     #optional = undefined as OptionalFacade<Target, Sources, B, this> | undefined
     /** {@inheritdoc ExtendedSchema.unbox} */
     get optional() {
-        if (!this.#optional) this.#optional = new OptionalFacade<Target, Sources, B, this>(this)
+        if (!this.#optional) this.#optional = new OptionalFacadeImpl<Target, Sources, B, this>(this)
         return this.#optional
     }
 
