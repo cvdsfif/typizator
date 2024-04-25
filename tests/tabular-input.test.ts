@@ -80,4 +80,21 @@ describe("Testing tabular input objects", () => {
              `
         )).toEqual([{ name: "null", id: 42n, arr: ["a", "b"], d2: "bulbul" }, { name: "any", id: 0n, arr: [] }])
     })
+
+    test("Should set an absent field's default value if present", () => {
+        // GIVEN a schema with a field having a default value
+        const defS = objectS({
+            normal: intS,
+            preset: intS.byDefault(42).optional
+        })
+
+        // WHEN getting the tabular input for the schema
+        const result = tabularInput(defS, `
+            normal
+            0
+        `)
+
+        // THEN the default field is filled
+        expect(result).toEqual([{ normal: 0, preset: 42 }])
+    })
 })

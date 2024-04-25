@@ -230,8 +230,22 @@ class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original e
 
     /** {@inheritdoc Schema.unbox} */
     unbox = (source: Sources | null | undefined, props?: UnboxingProperties): Target | null | undefined => {
-        if (source === undefined || (props?.keepUndefinedString === false && source === "undefined")) return undefined
-        return this.#unbox(source as any, props)
+        if (
+            !this.#metadata.hasDefaultRule &&
+            (
+                source === undefined ||
+                (props?.keepUndefinedString === false && source === "undefined")
+            )
+        ) {
+            return undefined
+        }
+        try {
+            return this.#unbox(source as any, props)
+        } catch (error) {
+            if (source === undefined) return undefined
+            throw error
+        }
+
     }
 }
 
@@ -306,7 +320,7 @@ export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultB
     /** {@inheritdoc ExtendedSchema.unbox} */
     byDefault = (
         target: Target | Error | ((s: Sources) => Target),
-        condition = (source => source === null) as (source: Sources) => boolean) =>
+        condition = (source => source === null || source === undefined) as (source: Sources) => boolean) =>
         new ByDefaultFacadeImpl(this as any, target, condition) as unknown as ByDefaultFacade<Target, Sources, B, this>
 }
 
@@ -388,7 +402,9 @@ class ObjectSImpl<T extends SchemaDefinition>
         const convertedObject = {} as SchemaTarget<T>
         this._metadata.fields.forEach((key, schema) => {
             try {
-                (convertedObject as any)[key as string] = schema.unbox(sourceConverted[key as string], props)
+                const unboxedField = schema.unbox(sourceConverted[key as string], props)
+                if (unboxedField === undefined) return
+                (convertedObject as any)[key as string] = unboxedField
             } catch (e: any) {
                 throw new Error(`Unboxing ${key}, value: ${sourceConverted[key as string]}: ${e.message}`);
             }

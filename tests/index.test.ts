@@ -1,5 +1,6 @@
 import { ApiImplementation, ApiMetadata, ArrayMetadata, FunctionMetadata, InferTargetFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, OptionalFacade, SchemaTarget, always, apiS, arrayS, bigintS, boolS, dateS, floatS, getSchemaSignature, intS, objectS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
+import JSONBig from "json-bigint";
 
 describe("Testing type unboxing", () => {
 
@@ -54,21 +55,21 @@ describe("Testing type unboxing", () => {
 
     test("Giving default values or throwing exceptions based on source data", () => {
         const validatedRecordS = objectS({
-            zeroIfNull: bigintS.byDefault(0n).optional,
-            stringIfNull: stringS.byDefault("def").optional,
+            zeroIfNull: bigintS.byDefault(0n, v => v === null).optional,
+            stringIfNull: stringS.byDefault("def", v => v === null).optional,
             errorIfNull: bigintS.byDefault(Error()).optional,
             specificErrorIfNull: bigintS.byDefault(Error("NULL")).optional,
             errorIfNegative: bigintS.byDefault(Error(), source => BigInt(source) < 0).optional,
             stringWithPrefix: stringS.byDefault((source: any) => `prefix-${source}`, always).optional
-        });
-        expect(validatedRecordS.unbox({ zeroIfNull: null })).toEqual({ zeroIfNull: 0n });
-        expect(validatedRecordS.unbox({ stringIfNull: null })).toEqual({ stringIfNull: "def" });
-        expect(() => validatedRecordS.unbox({ errorIfNull: null })).toThrow(Error);
-        expect(() => validatedRecordS.unbox({ specificErrorIfNull: null })).toThrow("NULL");
-        expect(() => validatedRecordS.unbox({ errorIfNegative: -1 })).toThrow(Error);
-        expect(validatedRecordS.unbox({ errorIfNegative: 1 })).toEqual({ errorIfNegative: 1n });
-        expect(validatedRecordS.unbox({ stringWithPrefix: "str" })).toEqual({ stringWithPrefix: "prefix-str" });
-    });
+        })
+        expect(validatedRecordS.unbox({ zeroIfNull: null })).toEqual({ zeroIfNull: 0n, stringWithPrefix: "prefix-undefined" })
+        expect(validatedRecordS.unbox({ stringIfNull: null })).toEqual({ stringIfNull: "def", stringWithPrefix: "prefix-undefined" })
+        expect(() => validatedRecordS.unbox({ errorIfNull: null })).toThrow(Error)
+        expect(() => validatedRecordS.unbox({ specificErrorIfNull: null })).toThrow("NULL")
+        expect(() => validatedRecordS.unbox({ errorIfNegative: -1 })).toThrow(Error)
+        expect(validatedRecordS.unbox({ errorIfNegative: 1 })).toEqual({ errorIfNegative: 1n, stringWithPrefix: "prefix-undefined" })
+        expect(validatedRecordS.unbox({ stringWithPrefix: "str" })).toEqual({ stringWithPrefix: "prefix-str" })
+    })
 
     test("Unboxing integers", () => {
         const primitivesRecordS = objectS({

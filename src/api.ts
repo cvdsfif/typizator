@@ -51,7 +51,7 @@ export type FunctionMetadata = {
  */
 export type ApiDefinition = {
     [K: string]: FunctionCallDefinition | ApiDefinition
-} & { name?: never, path?: never, metadata?: never }
+} & { metadata?: never }
 /**
  * Reproduces the API tree but with additional information like names and paths
  */
