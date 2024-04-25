@@ -5,13 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
-Optimised `.notNull` and `.optional` attributes management, removed circular dependencies and converted them to lazy-loaded getters. Cached `objectS` and `arrayS` instances to refer to the same instance for identical types. They are now exported as interfaces.
 
-### Fixed
-- `.byDefault(....).optional` now correctly replaces undefined values by the result of default resolution
+## 3.1.0 - 2024-04-25
+Optimised `.notNull` and `.optional` attributes management, removed circular dependencies and converted them to lazy-loaded getters. Cached `objectS` and `arrayS` instances to refer to the same instance for identical types. They are now exported as interfaces.
 
 ### Added
 - `getSchemaSignature` function that returns the schema string representation
+
+### Fixed
+- `.byDefault(....).optional` now correctly replaces undefined values by the result of default resolution
 
 ## 3.1.0-beta.3 - 2024-04-22
 
