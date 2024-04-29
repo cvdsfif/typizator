@@ -1,5 +1,5 @@
-import { FieldMissingError, JSONArrayNotFoundError, NullNotAllowedError } from "./errors";
-import { InferSourceFromSchema, InferTargetFromSchema, SchemaSource, SchemaTarget } from "./type-conversions";
+import { FieldMissingError, JSONArrayNotFoundError, NullNotAllowedError, SourceNotObjectError } from "./errors";
+import { InferSourceForDictionary, InferSourceFromSchema, InferTargetForDictionary, InferTargetFromSchema, SchemaSource, SchemaTarget } from "./type-conversions";
 import JSONBig from "json-bigint";
 
 export type DefaultBehaviour = { allowNull: boolean, optional: boolean }
@@ -8,7 +8,7 @@ interface Optional extends DefaultBehaviour { optional: true, allowNull: true }
 type AllowNull<T, B extends DefaultBehaviour> = B extends NotNull ? T : B extends Optional ? T | null | undefined : T | null;
 
 export type PrimitiveSchemaTypes = "string" | "int" | "float" | "bigint" | "bool" | "date";
-export type MetadataTypes = PrimitiveSchemaTypes | "object" | "array";
+export type MetadataTypes = PrimitiveSchemaTypes | "object" | "array" | "dictionary";
 /**
  * Metadata for the schema type
  */
@@ -105,6 +105,16 @@ export interface ArrayMetadata extends TypedMetadata {
      */
     elements: Schema
 }
+/**
+ * Metadata for the dictionary schema
+ */
+export interface DictionaryMetadata extends TypedMetadata {
+    dataType: "dictionary",
+    /**
+     * Schema for every value of the dictionary. Only one schema because all the dictionary elements are of the same type
+     */
+    values: Schema
+}
 
 /**
  * Setting that define the way the object described by the schema is unboxed
@@ -123,6 +133,7 @@ export type UnboxingProperties = {
 export type MetadataForSchema<T> =
     T extends ObjectS<any> ? ObjectMetadata :
     T extends ArrayS<any> ? ArrayMetadata :
+    T extends DictionaryS<any> ? DictionaryMetadata :
     TypedMetadata
 
 /**
@@ -174,9 +185,15 @@ export interface ExtendedSchema<
         ByDefaultFacade<Target, Sources, B, this>
 }
 
+/**
+ * Facade schema enforcing the not null restriction on any underlying unboxed object
+ */
 export interface NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
     extends Schema<Target, Sources, NotNull, Original> {
-    readonly notNull: true
+    /**
+     * This flag can be used for discriminators
+     */
+    readonly notNullFlag: true
 }
 
 class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
@@ -189,7 +206,7 @@ class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original ex
         return this.#metadata
     }
 
-    constructor(internal: Original, public readonly notNull = true as true) {
+    constructor(internal: Original, public readonly notNullFlag = true as true) {
         this.#metadata = {
             ...internal.metadata as MetadataForSchema<Original>,
             notNull: true,
@@ -205,9 +222,15 @@ class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original ex
     }
 }
 
+/**
+ * Facade schema allowing unboxed values to be undefined and making related object fields optional
+ */
 export interface OptionalFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
     extends Schema<Target, Sources, Optional, Original> {
-    readonly optional: true
+    /**
+     * This flag can be used for discriminators
+     */
+    readonly optionalFlag: true
 }
 
 class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
@@ -219,7 +242,7 @@ class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original e
     get metadata() {
         return this.#metadata
     }
-    constructor(internal: Original, public readonly optional = true as true) {
+    constructor(internal: Original, public readonly optionalFlag = true as true) {
         this.#metadata = {
             ...internal.metadata as MetadataForSchema<Original>,
             notNull: false,
@@ -348,6 +371,8 @@ const isObjectSchema = <T extends SchemaDefinition>(candidate: Schema): candidat
     candidate.metadata.dataType === "object"
 const isArraySchema = <T extends Schema>(candidate: Schema): candidate is ArrayS<T> =>
     candidate.metadata.dataType === "array"
+const isDictionarySchema = <T extends Schema>(candidate: Schema): candidate is DictionaryS<T> =>
+    candidate.metadata.dataType === "dictionary"
 
 const getTypeSchemaSignature = <T extends SchemaDefinition, B extends DefaultBehaviour>
     (schema: Schema<SchemaTarget<T>, SchemaSource<T>, B> | T): string => {
@@ -355,6 +380,7 @@ const getTypeSchemaSignature = <T extends SchemaDefinition, B extends DefaultBeh
     if (isObjectSchema(schema))
         return getObjectSchemaSignature(schema.metadata.fields)
     if (isArraySchema(schema)) return `${getSchemaSignature(schema.metadata.elements)}[]`
+    if (isDictionarySchema(schema)) return `{[string]:${getSchemaSignature(schema.metadata.values)}}`
     return schema.metadata.dataType
 }
 
@@ -454,7 +480,7 @@ const objectFactory = ObjectFactory.instance
 export const objectS = <T extends SchemaDefinition>(definition: T) => objectFactory.getOrCreateObject(definition)
 
 /**
- * Object schema representing an array
+ * Schema representing an array
  */
 export interface ArrayS<S extends Schema> extends ExtendedSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string> {
     /**
@@ -533,3 +559,78 @@ export type ObjectOrFacadeS<T extends SchemaDefinition> =
     ObjectS<T> |
     NotNullFacade<SchemaTarget<T>, SchemaSource<T>, DefaultBehaviour, ObjectS<T>>
 
+
+/**
+ * Schema representing a string-to-object dictionary
+ */
+export interface DictionaryS<V extends Schema> extends ExtendedSchema<InferTargetForDictionary<V>, InferSourceForDictionary<V> | string> {
+    /**
+     * Extended metadata containing the information about the dictionary values' types
+     */
+    get metadata(): DictionaryMetadata
+}
+
+class DictionarySImpl<V extends Schema>
+    extends TypeSchema<InferTargetForDictionary<V>, InferSourceForDictionary<V> | string>
+    implements DictionaryS<V> {
+    /** {@inheritdoc Schema.metadata} */
+    get metadata() {
+        return {
+            dataType: "dictionary",
+            values: this.values,
+            notNull: false,
+            optional: false
+        } as DictionaryMetadata
+    }
+    constructor(private values: V) {
+        super();
+    }
+    protected convert = (source: InferSourceForDictionary<V> | string, props?: UnboxingProperties): InferTargetForDictionary<V> => {
+        const sourceConverted =
+            typeof source === "string" ? JSONBig.parse(source) : source
+        if (typeof sourceConverted !== "object" || Array.isArray(sourceConverted)) throw new SourceNotObjectError()
+
+        return Object.keys(sourceConverted).reduce((accumulator, key) => {
+            try {
+                accumulator[key] = this.values.unbox(sourceConverted[key], props)
+            } catch (e: any) {
+                throw new Error(`Unboxing dictionary element ${key}, value: ${sourceConverted[key]}: ${e.message}`)
+            }
+            return accumulator
+        }, {} as InferTargetForDictionary<V>)
+    }
+}
+
+type DictionaryStore = {
+    [K: string]: DictionaryS<any>
+}
+class DictionaryFactory {
+    #store = {} as DictionaryStore
+    static #instance = new DictionaryFactory()
+    static get instance() { return this.#instance }
+    private constructor() { }
+    getOrCreateDictionary = <S extends Schema>(schema: S): DictionaryS<S> => {
+        const signature = getSchemaSignature(schema)
+        if (signature.indexOf(".DEF") > 0) return new DictionarySImpl(schema) as DictionaryS<S>
+        if (!this.#store[signature]) this.#store[signature] = new DictionarySImpl(schema) as DictionaryS<S>
+        return this.#store[signature]
+    }
+}
+const dictionaryFactory = DictionaryFactory.instance
+
+/**
+ * Returns a schema object representing the string-to-object dictionary of elements of the same type
+ * @param elements Schema type for each dictionary value
+ * @returns Object schema representing an dictionary of values of containing type
+ * @example A schema defined like this:
+ * ```ts
+ * dictionaryS(intS.notNull)
+ * ```
+ * ...represents an object defined as 
+ * ```ts
+ * {
+ *      [K:string]: number
+ * } | null
+ * ```
+ */
+export const dictionaryS = <S extends Schema>(values: S) => dictionaryFactory.getOrCreateDictionary(values)

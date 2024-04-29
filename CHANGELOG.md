@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+Dictionary schemas are now available, the schema declaration is `dictionaryS`
+
+### Changed
+- Discriminator flags on `notNull` and `optional` modificators are now called `notNullFlag` and `optionalFlag`
 
 ## 3.1.0 - 2024-04-25
 Optimised `.notNull` and `.optional` attributes management, removed circular dependencies and converted them to lazy-loaded getters. Cached `objectS` and `arrayS` instances to refer to the same instance for identical types. They are now exported as interfaces.

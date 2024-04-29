@@ -21,3 +21,6 @@ export class FieldMissingError extends Error { constructor() { super(FIELD_MISSI
 
 export const JSON_ARRAY_NOT_FOUND = "JSON Array not found";
 export class JSONArrayNotFoundError extends Error { constructor() { super(JSON_ARRAY_NOT_FOUND); } }
+
+export const SOURCE_IS_NOT_OBJECT = "The source is not an object";
+export class SourceNotObjectError extends Error { constructor() { super(SOURCE_IS_NOT_OBJECT); } }

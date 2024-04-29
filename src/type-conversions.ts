@@ -68,6 +68,53 @@ export type InferTargetFromSchema<T> =
     void
 
 /**
+ * Transforms a string-to-object schema into its target dictionary type
+ * 
+ * * @example
+ * Given this:
+ * ```ts
+ * const recordS = dictionaryS(intS).notNull
+ * ```
+ * When you do:
+ * ```ts
+ * type Record = InferTargetFromDictionary<typeof recordS>
+ * ```
+ * Then it transforms `Record` to:
+ * ```ts
+ * {
+ *      [K:string]: number | null
+ * }
+ * ```
+ */
+export type InferTargetForDictionary<V extends Schema> = {
+    [K: string]: InferTargetFromSchema<V>
+}
+
+/**
+ * Transforms a string-to-object schema into its source dictionary type
+ * 
+ * * @example
+ * Given this:
+ * ```ts
+ * const recordS = dictionaryS(intS).notNull
+ * ```
+ * When you do:
+ * ```ts
+ * type Record = InferTargetFromDictionary<typeof recordS>
+ * ```
+ * Then it transforms `Record` to:
+ * ```ts
+ * {
+ *      [K:string]: bigint | number | string | null
+ * }
+ * ```
+ */
+export type InferSourceForDictionary<V extends Schema> = {
+    [Key: string]: InferSourceFromSchema<V>
+}
+
+
+/**
  * Extracts target type from the `objectS` schema's argument
  */
 export type SchemaTarget<T extends SchemaDefinition> =

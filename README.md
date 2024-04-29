@@ -198,6 +198,26 @@ const unboxed = arrayOfStrings.unbox(`["one", "two", "fourty-two"]`)
 expect(unboxed![2]).toEqual("fourty-two")
 ```
 
+### Transforming dictionaries
+
+You can transform dictionaries mapping strings to objects using the `dictionaryS` schema:
+
+```ts
+const dictionaryOfStrings = dictionaryS(stringS).notNull
+const unboxed = dictionaryOfStrings.unbox({ "un": "one", "deux": null, trois: "fourty-two" })
+expect(unboxed["trois"]).toEqual("fourty-two")
+expect(unboxed.deux).toBeNull()
+expect(unboxed.un).toEqual("one")
+```
+
+...and the transformation from JSON also works:
+
+```ts
+const dictionaryOfStrings = dictionaryS(stringS.notNull)
+const unboxed = dictionaryOfStrings.unbox(`{"un":"one", "deux":"two", "trois":"fourty-two"}`)
+expect(unboxed!.trois).toEqual("fourty-two")
+```
+
 ### Schema metadata
 
 If you need to know at runtime the exact type of your schema's component (for serialization for example), you can use the schema's metadata:

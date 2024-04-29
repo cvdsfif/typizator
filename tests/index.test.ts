@@ -1,6 +1,5 @@
-import { ApiImplementation, ApiMetadata, ArrayMetadata, FunctionMetadata, InferTargetFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, OptionalFacade, SchemaTarget, always, apiS, arrayS, bigintS, boolS, dateS, floatS, getSchemaSignature, intS, objectS, stringS } from "../src";
+import { ApiImplementation, ArrayMetadata, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, objectS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
-import JSONBig from "json-bigint";
 
 describe("Testing type unboxing", () => {
 
@@ -198,36 +197,69 @@ describe("Testing type unboxing", () => {
     });
 
     test("Array of primitives unboxing", () => {
-        const arrayOfStrings = arrayS(stringS).notNull;
-        const unboxed = arrayOfStrings.unbox(["one", null, "fourty-two"]);
-        expect(unboxed[2]).toEqual("fourty-two");
-        expect(unboxed[1]).toBeNull();
-    });
+        const arrayOfStrings = arrayS(stringS).notNull
+        const unboxed = arrayOfStrings.unbox(["one", null, "fourty-two"])
+        expect(unboxed[2]).toEqual("fourty-two")
+        expect(unboxed[1]).toBeNull()
+    })
+
+    test("Dictionary of primitives unboxing", () => {
+        const dictionaryOfStrings = dictionaryS(stringS).notNull
+        const unboxed = dictionaryOfStrings.unbox({ "un": "one", "deux": null, trois: "fourty-two" })
+        expect(unboxed["trois"]).toEqual("fourty-two")
+        expect(unboxed.deux).toBeNull()
+        expect(unboxed.un).toEqual("one")
+    })
 
     test("Array of not null primitives unboxing", () => {
-        const arrayOfStrings = arrayS(stringS.notNull);
-        const unboxed = arrayOfStrings.unbox(["one", "two", 42]);
-        expect(unboxed![2]).toEqual("42");
-    });
+        const arrayOfStrings = arrayS(stringS.notNull)
+        const unboxed = arrayOfStrings.unbox(["one", "two", 42])
+        expect(unboxed![2]).toEqual("42")
+    })
+
+    test("Dictionary of not null primitives unboxing", () => {
+        const dictionaryOfStrings = dictionaryS(stringS.notNull)
+        const unboxed = dictionaryOfStrings.unbox({ un: "one", deux: "two", trois: 42 })
+        expect(unboxed!.trois).toEqual("42")
+    })
 
     test("Null array unboxing", () => {
-        const arrayOfStrings = arrayS(stringS.notNull);
-        const unboxed = arrayOfStrings.unbox(null);
-        expect(unboxed).toBeNull();
-        const unboxedFromNullLiteral = arrayOfStrings.unbox("null");
-        expect(unboxedFromNullLiteral).toBeNull();
-    });
+        const arrayOfStrings = arrayS(stringS.notNull)
+        const unboxed = arrayOfStrings.unbox(null)
+        expect(unboxed).toBeNull()
+        const unboxedFromNullLiteral = arrayOfStrings.unbox("null")
+        expect(unboxedFromNullLiteral).toBeNull()
+    })
+
+    test("Null dictionary unboxing", () => {
+        const dictionaryOfStrings = dictionaryS(stringS.notNull)
+        const unboxed = dictionaryOfStrings.unbox(null)
+        expect(unboxed).toBeNull()
+        const unboxedFromNullLiteral = dictionaryOfStrings.unbox("null")
+        expect(unboxedFromNullLiteral).toBeNull()
+    })
 
     test("Array unboxing from JSON", () => {
-        const arrayOfStrings = arrayS(stringS.notNull);
-        const unboxed = arrayOfStrings.unbox(`["one", "two", "fourty-two"]`);
-        expect(unboxed![2]).toEqual("fourty-two");
-    });
+        const arrayOfStrings = arrayS(stringS.notNull)
+        const unboxed = arrayOfStrings.unbox(`["one", "two", "fourty-two"]`)
+        expect(unboxed![2]).toEqual("fourty-two")
+    })
+
+    test("Dictionary unboxing from JSON", () => {
+        const dictionaryOfStrings = dictionaryS(stringS.notNull)
+        const unboxed = dictionaryOfStrings.unbox(`{"un":"one", "deux":"two", "trois":"fourty-two"}`)
+        expect(unboxed!.trois).toEqual("fourty-two")
+    })
 
     test("Array unboxing error from JSON", () => {
-        const arrayOfStrings = arrayS(stringS.notNull);
-        expect(() => arrayOfStrings.unbox(`{"one":1, "two":2, "fourty-two":42}`)).toThrow(JSONArrayNotFoundError);
-    });
+        const arrayOfStrings = arrayS(stringS.notNull)
+        expect(() => arrayOfStrings.unbox(`{"one":1, "two":2, "fourty-two":42}`)).toThrow(JSONArrayNotFoundError)
+    })
+
+    test("Dictionary unboxing error from JSON", () => {
+        const dictionaryOfStrings = dictionaryS(stringS.notNull)
+        expect(() => dictionaryOfStrings.unbox(`[1, 2, 42]`)).toThrow(SourceNotObjectError)
+    })
 
     test("Extract the schema metadata", () => {
         const simpleRecordS = objectS({
@@ -237,20 +269,25 @@ describe("Testing type unboxing", () => {
             dateField: dateS.byDefault(new Date("1984-01-01")),
             boolField: boolS,
             floatField: floatS
-        });
-        expect(simpleRecordS.metadata.dataType).toEqual("object");
-        const fieldsMetadata = simpleRecordS.metadata;
-        expect(fieldsMetadata.fields.size).toEqual(6);
-        expect(fieldsMetadata.fields.get("id")?.metadata.dataType).toEqual("bigint");
-        expect(fieldsMetadata.fields.get("id")?.metadata.notNull).toBeTruthy();
-        expect(fieldsMetadata.fields.get("name")?.metadata.notNull).toBeFalsy();
-        expect(fieldsMetadata.fields.get("opt")?.metadata.optional).toBeTruthy();
-        expect(fieldsMetadata.fields.get("dateField")?.metadata.dataType).toEqual("date");
-        expect(fieldsMetadata.fields.get("boolField")?.metadata.dataType).toEqual("bool");
-        expect(fieldsMetadata.fields.get("floatField")?.metadata.dataType).toEqual("float");
-        const simpleArrayS = arrayS(simpleRecordS);
-        expect(simpleArrayS.metadata.dataType).toEqual("array");
-        expect((simpleArrayS.metadata as ArrayMetadata).elements.metadata.dataType).toEqual("object");
+        })
+        expect(simpleRecordS.metadata.dataType).toEqual("object")
+        const fieldsMetadata = simpleRecordS.metadata
+        expect(fieldsMetadata.fields.size).toEqual(6)
+        expect(fieldsMetadata.fields.get("id")?.metadata.dataType).toEqual("bigint")
+        expect(fieldsMetadata.fields.get("id")?.metadata.notNull).toBeTruthy()
+        expect(fieldsMetadata.fields.get("name")?.metadata.notNull).toBeFalsy()
+        expect(fieldsMetadata.fields.get("opt")?.metadata.optional).toBeTruthy()
+        expect(fieldsMetadata.fields.get("dateField")?.metadata.dataType).toEqual("date")
+        expect(fieldsMetadata.fields.get("boolField")?.metadata.dataType).toEqual("bool")
+        expect(fieldsMetadata.fields.get("floatField")?.metadata.dataType).toEqual("float")
+
+        const simpleArrayS = arrayS(simpleRecordS)
+        expect(simpleArrayS.metadata.dataType).toEqual("array")
+        expect(simpleArrayS.metadata.elements.metadata.dataType).toEqual("object")
+
+        const simpleDictionaryS = dictionaryS(simpleRecordS)
+        expect(simpleDictionaryS.metadata.dataType).toEqual("dictionary")
+        expect(simpleDictionaryS.metadata.values.metadata.dataType).toEqual("object")
     })
 
     test("Correctly map the schema metadata", () => {
@@ -293,9 +330,14 @@ describe("Testing type unboxing", () => {
     });
 
     test("Should throw informative error if there is an exception unboxing an array field", () => {
-        const errObjS = arrayS(intS.notNull);
-        expect(() => errObjS.unbox(`[1,null]`)).toThrow("Unboxing array element 1, value: null: Null not allowed");
-    });
+        const errObjS = arrayS(intS.notNull)
+        expect(() => errObjS.unbox(`[1,null]`)).toThrow("Unboxing array element 1, value: null: Null not allowed")
+    })
+
+    test("Should throw informative error if there is an exception unboxing a dictionary field", () => {
+        const errObjS = dictionaryS(intS.notNull)
+        expect(() => errObjS.unbox(`{"un":1,"deux":null}`)).toThrow("Unboxing dictionary element deux, value: null: Null not allowed")
+    })
 
     test("Implement and call API", async () => {
         const cruelApi = {
@@ -469,14 +511,15 @@ describe("Testing type unboxing", () => {
             dat: dateS,
             def: bigintS.byDefault(0n),
             defOpt: stringS.byDefault("0").optional,
-            arr: arrayS(boolS).notNull
+            arr: arrayS(boolS).notNull,
+            dict: dictionaryS(intS).notNull
         })
 
         // WHEN asking for the signature
         const signature = getSchemaSignature(objectToSignS)
 
         // THEN a correct signature is returnes
-        expect(signature).toEqual("{str:string.NN,num:int.OPT,dat:date,def:bigint.DEF,defOpt:string.OPT.DEF,arr:bool[].NN}")
+        expect(signature).toEqual("{str:string.NN,num:int.OPT,dat:date,def:bigint.DEF,defOpt:string.OPT.DEF,arr:bool[].NN,dict:{[string]:int}.NN}")
     })
 
     test("Should not recreate identical objects", () => {
@@ -548,4 +591,40 @@ describe("Testing type unboxing", () => {
         // THEN the two schemas are not the same object
         expect(Object.is(s1, s2)).toBeFalsy()
     })
+
+    test("Should not recreate identical dictionarys", () => {
+        // GIVEN the source schema
+        const sourceSchema = {
+            str: stringS.notNull,
+            num: intS.optional,
+            dat: dateS,
+            arr: arrayS(boolS).notNull
+        }
+
+        // WHEN creating two objects schema from the same source
+        const s1 = dictionaryS(objectS(sourceSchema)).notNull
+        const s2 = dictionaryS(objectS(sourceSchema)).notNull
+
+        // THEN the two schemas are effectively the same object
+        expect(Object.is(s1, s2)).toBeTruthy()
+    })
+
+    test("Should recreate identical dictionaries if there are default rules inside", () => {
+        // GIVEN the source schema
+        const sourceSchema = {
+            str: stringS.notNull,
+            num: intS.optional,
+            dat: dateS,
+            def: bigintS.byDefault(0n),
+            arr: arrayS(boolS).notNull
+        }
+
+        // WHEN creating two objects schema from the same source
+        const s1 = dictionaryS(objectS(sourceSchema)).notNull
+        const s2 = dictionaryS(objectS(sourceSchema)).notNull
+
+        // THEN the two schemas are not the same object
+        expect(Object.is(s1, s2)).toBeFalsy()
+    })
+
 })
