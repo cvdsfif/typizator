@@ -432,7 +432,8 @@ class ObjectSImpl<T extends SchemaDefinition>
                 if (unboxedField === undefined) return
                 (convertedObject as any)[key as string] = unboxedField
             } catch (e: any) {
-                throw new Error(`Unboxing ${key}, value: ${sourceConverted[key as string]}: ${e.message}`);
+                const elementStringified = JSONBig.stringify(sourceConverted[key as string])
+                throw new Error(`Unboxing ${key}, value: ${elementStringified}: ${e.message}`);
             }
         })
         return convertedObject;
@@ -513,7 +514,8 @@ class ArraySImpl<S extends Schema>
             try {
                 return this.elements.unbox(element, props);
             } catch (e: any) {
-                throw new Error(`Unboxing array element ${idx}, value: ${element}: ${e.message}`);
+                const elementStringified = JSONBig.stringify(element)
+                throw new Error(`Unboxing array element ${idx}, value: ${elementStringified}: ${e.message}`);
             }
         });
     }
@@ -594,7 +596,8 @@ class DictionarySImpl<V extends Schema>
             try {
                 accumulator[key] = this.values.unbox(sourceConverted[key], props)
             } catch (e: any) {
-                throw new Error(`Unboxing dictionary element ${key}, value: ${sourceConverted[key]}: ${e.message}`)
+                const elementStringified = JSONBig.stringify(sourceConverted[key])
+                throw new Error(`Unboxing dictionary element ${key}, value: ${elementStringified}: ${e.message}`)
             }
             return accumulator
         }, {} as InferTargetForDictionary<V>)

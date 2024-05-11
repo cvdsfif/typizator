@@ -1,5 +1,5 @@
-import { objectS, arrayS } from "../src/schemas"
-import { bigintS, intS, stringS } from "../src/primitive-types"
+import { objectS, arrayS, dictionaryS } from "../src/schemas"
+import { bigintS, boolS, dateS, intS, stringS } from "../src/primitive-types"
 import { tabularInput } from "../src/tabular-input"
 
 describe("Testing tabular input objects", () => {

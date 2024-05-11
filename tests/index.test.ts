@@ -104,7 +104,7 @@ describe("Testing type unboxing", () => {
         });
         expect(() => errorRecordS.unbox({ hugeInt: 12345678901234567890n }))
             .toThrow(expect.objectContaining({ message: expect.stringContaining("Integer out of bounds") }))
-        expect(() => errorRecordS.unbox({ hugeInt: "wrong" })).toThrow("Unboxing hugeInt, value: wrong: Invalid number")
+        expect(() => errorRecordS.unbox({ hugeInt: "wrong" })).toThrow("Unboxing hugeInt, value: \"wrong\": Invalid number")
         expect(() => intS.unbox("wrong")).toThrow(InvalidNumberError)
         expect(errorRecordS.unbox({ nanAllowed: "too bad" })?.nanAllowed).toBeNaN()
     });
@@ -627,4 +627,16 @@ describe("Testing type unboxing", () => {
         expect(Object.is(s1, s2)).toBeFalsy()
     })
 
+    test("Should correctly treat exceptions on complex objects", () => {
+        // GIVEN an array with non nullable fields
+        const arrayWithNonNullableFields = arrayS(objectS({
+            name: stringS.notNull
+        })).notNull
+
+        // WHEN unboxing array from JSON with non null rule not respected
+        expect(() => arrayWithNonNullableFields.unbox(`[{ "name": null }]`))
+
+            // THEN an informative error is thrown
+            .toThrow("Unboxing array element 0, value: {\"name\":null}: Unboxing name, value: null: Null not allowed")
+    })
 })
