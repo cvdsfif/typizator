@@ -89,6 +89,34 @@ expect(simpleRecordS.unbox({
 })
 ```
 
+### Extendable types
+
+The `objectS` schema has an `extend` method to add new fields to the schema:
+
+```ts
+const extendedRecordS = simpleRecordS.extend({
+    age: intS.optional
+})
+```
+
+This produces a schema that is compatible with the `simpleRecordS` schema, but with an additional `age` field.
+
+### Literal types
+
+You can create literal types using the `literalS` schema factory:
+
+```ts
+const literalType = literalS<"test" | "test2">("test", "test2")
+```
+
+The `literalS` schema will only unbox values that match one of the literals you provided:
+
+```ts
+literalType.unbox("test") // OK
+literalType.unbox("test2") // OK
+literalType.unbox("test3") // Error
+```
+
 ### Infer types from schemas
 
 When you write a schema, you don't need to repeat it in the type definition, Typescript transforms it for you:

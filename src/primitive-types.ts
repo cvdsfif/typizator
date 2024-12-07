@@ -1,13 +1,13 @@
 import { IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError } from "./errors";
-import { ExtendedSchema, PrimitiveSchemaTypes, TypeSchema } from "./schemas";
+import { ExtendedSchema, TypeSchema } from "./schemas";
 
 const integrifyString = (s: string) => s.replace(/[\.|,][0-9]*$/, "")
-const defaultMetadata = (dataType: PrimitiveSchemaTypes) => ({ dataType, notNull: false, optional: false });
+const defaultMetadata = (dataType: string) => ({ dataType, notNull: false, optional: false });
 /**
  * Type for the bigint schema.
  */
 export type BigintS = ExtendedSchema<bigint, bigint | number | string>
-class BigintSImpl extends TypeSchema<bigint, bigint | number | string>{
+class BigintSImpl extends TypeSchema<bigint, bigint | number | string> {
     private _metadata = defaultMetadata("bigint");
     get metadata() { return this._metadata; }
     protected convert = (source: bigint | number | string): bigint =>
@@ -24,8 +24,9 @@ export const bigintS = new BigintSImpl() as BigintS
  * Type for the string schema.
  */
 export type StringS = ExtendedSchema<string, string | bigint | number>
-class StringSImpl extends TypeSchema<string, string | bigint | number>{
-    private _metadata = defaultMetadata("string");
+class StringSImpl extends TypeSchema<string, string | bigint | number> {
+    private _metadata = defaultMetadata("string")
+
     get metadata() { return this._metadata; }
     protected convert = (source: string | bigint | number): string => typeof source === "string" ? source : `${source}`
 }
@@ -34,11 +35,33 @@ class StringSImpl extends TypeSchema<string, string | bigint | number>{
  */
 export const stringS = new StringSImpl() as StringS
 
+export type LiteralS<T> = ExtendedSchema<T, T>
+class LiteralSImpl<T> extends TypeSchema<T, T> {
+    private _metadata
+    private values: T[]
+
+    constructor(values: T[]) {
+        super()
+        this.values = values
+        this._metadata = defaultMetadata(`literal(${values.join("|")})`)
+    }
+
+    get metadata() { return this._metadata; }
+    protected convert = (source: T): T => {
+        if (!this.values.includes(source)) throw new Error(`Invalid value for literal type: ${source}, must be one of ${this.values.join("|")}`)
+        return source
+    }
+}
+/**
+ * Primitive type schema representing a string
+ */
+export const literalS = <T>(...values: T[]) => new LiteralSImpl<T>(values) as LiteralS<T>
+
 /**
  * Type for the int schema.
  */
 export type IntS = ExtendedSchema<number, bigint | number | string>
-class IntSImpl extends TypeSchema<number, bigint | number | string>{
+class IntSImpl extends TypeSchema<number, bigint | number | string> {
     private _metadata = defaultMetadata("int");
     get metadata() { return this._metadata; }
     protected convert = (source: number | bigint | string): number => {
@@ -62,7 +85,7 @@ export const intS = new IntSImpl() as IntS
  * Type for the float schema.
  */
 export type FloatS = ExtendedSchema<number, bigint | number | string>
-class FloatSImpl extends TypeSchema<number, bigint | number | string>{
+class FloatSImpl extends TypeSchema<number, bigint | number | string> {
     private _metadata = defaultMetadata("float");
     get metadata() { return this._metadata; }
     protected convert = (source: number | bigint | string): number => {
@@ -82,7 +105,7 @@ export const floatS = new FloatSImpl() as FloatS
  * Type for the date schema.
  */
 export type DateS = ExtendedSchema<Date, Date | string>
-class DateSImpl extends TypeSchema<Date, Date | string>{
+class DateSImpl extends TypeSchema<Date, Date | string> {
     private _metadata = defaultMetadata("date");
     get metadata() { return this._metadata; }
     protected convert = (source: Date | string): Date => {
@@ -105,7 +128,7 @@ export const dateS = new DateSImpl() as DateS
  * Type for the boolean schema.
  */
 export type BoolS = ExtendedSchema<boolean, boolean | string | number>
-class BoolSImpl extends TypeSchema<boolean, boolean | string | number>{
+class BoolSImpl extends TypeSchema<boolean, boolean | string | number> {
     private _metadata = defaultMetadata("bool");
     get metadata() { return this._metadata; }
     protected convert = (source: boolean | string | number): boolean => {

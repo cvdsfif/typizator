@@ -7,8 +7,6 @@ interface NotNull extends DefaultBehaviour { allowNull: false }
 interface Optional extends DefaultBehaviour { optional: true, allowNull: true }
 type AllowNull<T, B extends DefaultBehaviour> = B extends NotNull ? T : B extends Optional ? T | null | undefined : T | null;
 
-export type PrimitiveSchemaTypes = "string" | "int" | "float" | "bigint" | "bool" | "date";
-export type MetadataTypes = PrimitiveSchemaTypes | "object" | "array" | "dictionary";
 /**
  * Metadata for the schema type
  */
@@ -16,7 +14,7 @@ export interface TypedMetadata {
     /**
      * Data type
      */
-    dataType: MetadataTypes,
+    dataType: string,
     /**
      * True if null is accepted by the object
      */
@@ -66,7 +64,7 @@ export type FieldsMap = {
 }
 
 class FieldsMapFacade<T extends SchemaDefinition> implements FieldsMap {
-    constructor(private definition: T) { }
+    constructor(public definition: T) { }
 
     get = (fieldName: string) => this.definition[fieldName]
 
@@ -404,8 +402,10 @@ export interface ObjectS<T extends SchemaDefinition> extends ExtendedSchema<Sche
     /**
      * Extended metadata containing names and schemas of object's fields
      */
-    get metadata(): ObjectMetadata;
+    get metadata(): ObjectMetadata
+    extend: <R extends SchemaDefinition>(definition: R) => ObjectS<T & R>
 }
+
 class ObjectSImpl<T extends SchemaDefinition>
     extends TypeSchema<SchemaTarget<T>, SchemaSource<T>>
     implements ObjectS<T> {
@@ -437,6 +437,15 @@ class ObjectSImpl<T extends SchemaDefinition>
             }
         })
         return convertedObject;
+    }
+
+    /**
+     * Extends the object schema with additional fields
+     * @param definition Object containing fields with type definitions
+     * @returns Extended object schema
+     */
+    public extend = <R extends SchemaDefinition>(definition: R): ObjectS<T & R> => {
+        return objectS({ ...this._metadata.fields.definition, ...definition }) as ObjectS<T & R>
     }
 }
 

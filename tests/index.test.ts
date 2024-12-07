@@ -1,4 +1,4 @@
-import { ApiImplementation, ArrayMetadata, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, objectS, stringS } from "../src";
+import { ApiImplementation, ArrayMetadata, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
@@ -127,7 +127,7 @@ describe("Testing type unboxing", () => {
             floatFromBigint: 3.0,
             floatFromFloat: 3.9
         });
-    });
+    })
 
     test("Float conversion errors", () => {
         const errorRecordS = objectS({
@@ -638,5 +638,52 @@ describe("Testing type unboxing", () => {
 
             // THEN an informative error is thrown
             .toThrow("Unboxing array element 0, value: {\"name\":null}: Unboxing name, value: null: Null not allowed")
+    })
+
+    test("Should correctly unbox extended objects", () => {
+        // GIVEN an extended object
+        const extendedObject = objectS({
+            name: stringS.notNull,
+            age: intS.notNull
+        }).extend({
+            dob: dateS.notNull
+        })
+
+        // WHEN unboxing the extended object
+        const unboxed = extendedObject.unbox({ name: "John Doe", age: 30, dob: "1990-01-01" })
+
+        // THEN the unboxed object is correct
+        expect(unboxed).toEqual({ name: "John Doe", age: 30, dob: new Date("1990-01-01") })
+    })
+
+    test("Should correctly unbox literal types", () => {
+        // GIVEN a literal type
+        const literalType = literalS<"test" | "test2">("test", "test2")
+
+        // WHEN unboxing the literal type
+        const unboxed = literalType.unbox("test")
+
+        // THEN the unboxed value is correct
+        expect(unboxed).toEqual("test")
+    })
+
+    test("Should fail on unboxing invalid values", () => {
+        // GIVEN a literal type
+        const literalType = literalS<"test" | "test2">("test", "test2")
+
+        // WHEN unboxing the literal type from an invalid value
+        // THEN an error is thrown
+        expect(() => literalType.unbox("test3" as any)).toThrow("Invalid value for literal type: test3, must be one of test|test2")
+    })
+
+    test("Should show correct metadata for literal types", () => {
+        // GIVEN a literal type
+        const literalType = literalS<"test" | "test2">("test", "test2")
+
+        // WHEN asking for the metadata
+        const metadata = literalType.metadata
+
+        // THEN the metadata is correct
+        expect(metadata.dataType).toEqual("literal(test|test2)")
     })
 })
