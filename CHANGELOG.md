@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+`hidden` field added to the API and function definitions. Additional checks added to the API creation to ensure that only valid fields are allowed.
 
 ## 4.0.0 - 2024-12-07
 Extendable types and literal schemas added. See `extend` method for `objectS` and the `literalS` schema.

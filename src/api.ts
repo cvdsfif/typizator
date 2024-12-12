@@ -12,7 +12,11 @@ export type FunctionCallDefinition = {
     /**
      * Return value type schema
      */
-    retVal?: Schema
+    retVal?: Schema,
+    /**
+     * If true, it tells the integration to exclude this function from the API interface
+     */
+    hidden?: boolean,
 }
 /**
  * Information 
@@ -42,7 +46,11 @@ export type FunctionMetadata = {
     /**
      * Return value type schema
      */
-    retVal: Schema
+    retVal: Schema,
+    /**
+     * If true, it tells the integration to exclude this function from the API interface
+     */
+    hidden?: boolean
 } & NamedMetadata
 /**
  * List of function definitions and sub-apis
@@ -72,7 +80,11 @@ export type ApiMetadata<T extends ApiDefinition> = {
     /**
      * Objects metadata tree reproducing the API structure
      */
-    implementation: MetadataMembersImplementation<T>
+    implementation: MetadataMembersImplementation<T>,
+    /**
+     * If true, it tells the integration to exclude this API from the API interface
+     */
+    hidden?: boolean,
 } & NamedMetadata
 
 /**
@@ -84,11 +96,19 @@ export interface ApiSchema<T extends ApiDefinition> {
 class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
     private readonly _metadata: ApiMetadata<T>;
     public get metadata() { return this._metadata; }
-    private extractMetadata = <D extends ApiDefinition>(definition: D, metadataName = "", parentPath = ""): ApiMetadata<D> => {
-        const impl = {} as MetadataMembersImplementation<D>;
+    private extractMetadata = <D extends ApiDefinition>(
+        definition: D,
+        metadataName: string,
+        parentPath: string,
+        props: { hidden?: boolean }
+    ): ApiMetadata<D> => {
+        const impl = {} as MetadataMembersImplementation<D>
         Object.keys(definition).forEach(key => {
             const field = definition[key];
             if (typeof field.args === "object") {
+                Object.keys(field).forEach(fld => {
+                    if (!["args", "retVal", "hidden"].includes(fld)) throw new Error(`Invalid field ${fld} in ${metadataName}/${key}`);
+                });
                 (impl as any)[key] = {
                     ...definition[key],
                     name: key,
@@ -98,11 +118,12 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
                         args: field.args,
                         retVal: field.retVal,
                         name: key,
-                        path: `${parentPath}${metadataName}/${key}`
+                        path: `${parentPath}${metadataName}/${key}`,
+                        hidden: field.hidden ?? props.hidden
                     }
                 }
             } else {
-                const child = this.extractMetadata(field as ApiDefinition, key, `${parentPath}${metadataName}/`);
+                const child = this.extractMetadata(field as ApiDefinition, key, `${parentPath}${metadataName}/`, props);
                 (impl as any)[key] = {
                     ...child.implementation,
                     name: key,
@@ -110,22 +131,24 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
                     metadata: child
                 }
             }
-        });
+        })
         return ({
             dataType: "api",
             implementation: impl,
             name: metadataName,
-            path: `${parentPath}${metadataName}`
+            path: `${parentPath}${metadataName}`,
+            hidden: props.hidden
         })
     }
-    constructor(definition: T) { this._metadata = this.extractMetadata(definition); }
+    constructor(definition: T, props: { hidden?: boolean }) { this._metadata = this.extractMetadata(definition, "", "", props); }
 }
 /**
  * Creates a new API schema
  * @param definition Object containing function definitions matching `FunctionCallDefinition` and sub-apis allowing to build a tree API structure
+ * @param props Optional properties to apply to the API. `hidden` as true will hide the API from the API interface
  * @returns API schema available at fun time
  */
-export const apiS = <T extends ApiDefinition>(definition: T) => new ApiS(definition) as ApiSchema<T>;
+export const apiS = <T extends ApiDefinition>(definition: T, props: { hidden?: boolean } = {}) => new ApiS(definition, props) as ApiSchema<T>;
 
 /**
  * Extracts argument types from a list of schemas.

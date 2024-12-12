@@ -686,4 +686,63 @@ describe("Testing type unboxing", () => {
         // THEN the metadata is correct
         expect(metadata.dataType).toEqual("literal(test|test2)")
     })
+
+    test("Should correctly take into account 'hidden' property", () => {
+        // GIVEN a hidden API
+        // WHEN creating the API
+        const api = apiS({
+            meow: { args: [], retVal: stringS.notNull },
+            child: {
+                guau: { args: [], retVal: stringS.notNull, hidden: false }
+            }
+        }, { hidden: true })
+
+        // THEN the API is hidden
+        expect(api.metadata.hidden).toBeTruthy()
+
+        // AND the API function is hidden as well
+        expect(api.metadata.implementation.meow.metadata.hidden).toBeTruthy()
+
+        // AND the child API is hidden as well
+        expect(api.metadata.implementation.child.metadata.hidden).toBeTruthy()
+
+        // AND the child API function is hidden
+        expect(api.metadata.implementation.child.metadata.implementation.guau.metadata.hidden).toBeFalsy()
+    })
+
+    test("Should take into account 'hidden' property at function level", () => {
+        // GIVEN a hidden API
+        // WHEN creating the API
+        const api = apiS({
+            meow: { args: [], retVal: stringS.notNull, hidden: true },
+            child: {
+                guau: { args: [], retVal: stringS.notNull }
+            }
+        })
+
+        // THEN the API is hidden
+        expect(api.metadata.hidden).toBeFalsy()
+
+        // AND the API function is hidden as well
+        expect(api.metadata.implementation.meow.metadata.hidden).toBeTruthy()
+
+        // AND the child API is hidden as well
+        expect(api.metadata.implementation.child.metadata.hidden).toBeFalsy()
+
+        // AND the child API function is hidden
+        expect(api.metadata.implementation.child.metadata.implementation.guau.metadata.hidden).toBeFalsy()
+    })
+
+    test("Should fail on invalid fields in function definition", () => {
+        // GIVEN an API with an invalid field
+        // WHEN creating the API
+        // THEN an error is thrown
+        expect(() => apiS({
+            meow: { args: [], retVal: stringS.notNull, hidden: true },
+            child: {
+                guau: { args: [], retval: stringS.notNull }
+            }
+        })).toThrow("Invalid field retval in child/guau")
+
+    })
 })
