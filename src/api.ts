@@ -59,7 +59,7 @@ export type FunctionMetadata = {
  */
 export type ApiDefinition = {
     [K: string]: FunctionCallDefinition | ApiDefinition
-} & { metadata?: never }
+} & { hidden?: boolean } & { metadata?: never }
 /**
  * Reproduces the API tree but with additional information like names and paths
  */
@@ -90,10 +90,10 @@ export type ApiMetadata<T extends ApiDefinition> = {
 /**
  * Run-time metadata giving the run-time access to the API structure and data types
  */
-export interface ApiSchema<T extends ApiDefinition> {
+export interface ApiSchema<T extends ApiDefinition, P extends { hidden?: boolean }> {
     get metadata(): ApiMetadata<T>
 }
-class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
+class ApiS<T extends ApiDefinition, P extends { hidden?: boolean }> implements ApiSchema<T, P> {
     private readonly _metadata: ApiMetadata<T>;
     public get metadata() { return this._metadata; }
     private extractMetadata = <D extends ApiDefinition>(
@@ -148,7 +148,10 @@ class ApiS<T extends ApiDefinition> implements ApiSchema<T> {
  * @param props Optional properties to apply to the API. `hidden` as true will hide the API from the API interface
  * @returns API schema available at fun time
  */
-export const apiS = <T extends ApiDefinition>(definition: T, props: { hidden?: boolean } = {}) => new ApiS(definition, props) as ApiSchema<T>;
+export const apiS = <
+    T extends ApiDefinition,
+    P extends { hidden?: boolean }
+>(definition: T, props: P = {} as P) => new ApiS(definition, props) as ApiSchema<T, P>;
 
 /**
  * Extracts argument types from a list of schemas.
@@ -189,9 +192,40 @@ export type InferArguments<T extends [...any]> =
  * }
  * ```
  */
-export type ApiImplementation<T> = T extends ApiSchema<infer S> ? ApiImplementation<S> : {
+export type ApiImplementation<T> = T extends ApiSchema<infer S, any> ? ApiImplementation<S> : {
     [K in keyof T]:
     T[K] extends ApiDefinition ? ApiImplementation<T[K]> :
+    T[K] extends FunctionCallDefinition ?
+    (...args: InferArguments<T[K]["args"]>) => Promise<InferTargetFromSchema<T[K]["retVal"]>>
+    : never
+}
+
+/**
+ * Extracts the type from the API schema taking into account the visibility (`hidden` property) of the API and its functions
+ * 
+ * @example
+ * This:
+ * ```ts
+ * apiS({
+ *      helloWorld: { args: [stringS, intS], retVal: bigintS }
+ *      cruel: {
+ *          world: { args:[] }
+ *      }
+ * })
+ * ```
+ * ...becomes this:
+ * ```ts
+ * {
+ *      helloWorld: (arg0:string, arg1:number) => Promise<bigint>
+ *      cruel: {
+ *          world: () => Promise<void>
+ *      }
+ * }
+ * ```
+ */
+export type ApiImplementationWithVisibility<T> = T extends ApiSchema<infer S, infer P> ? P extends { hidden: true } ? never : ApiImplementationWithVisibility<S> : {
+    [K in keyof T as T[K] extends { hidden: true } ? never : K]:
+    T[K] extends ApiDefinition ? ApiImplementationWithVisibility<T[K]> :
     T[K] extends FunctionCallDefinition ?
     (...args: InferArguments<T[K]["args"]>) => Promise<InferTargetFromSchema<T[K]["retVal"]>>
     : never
