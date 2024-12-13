@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 4.1.1 - 2024-12-13
+
 ## 4.1.0 - 2024-12-12
 `hidden` field added to the API and function definitions. Additional checks added to the API creation to ensure that only valid fields are allowed.
 
