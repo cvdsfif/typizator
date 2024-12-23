@@ -1,4 +1,4 @@
-import { ApiImplementation, ApiImplementationWithVisibility, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, stringS } from "../src";
+import { ApiImplementation, ApiImplementationWithVisibility, ApiMetadata, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
@@ -656,6 +656,62 @@ describe("Testing type unboxing", () => {
         expect(unboxed).toEqual({ name: "John Doe", age: 30, dob: new Date("1990-01-01") })
     })
 
+    test("Should correctly unbox objects extended from notNull", () => {
+        // GIVEN an extended object
+        const extendedObject = objectS({
+            name: stringS.notNull,
+            age: intS.notNull
+        }).notNull.extend({
+            dob: dateS.notNull
+        })
+
+        // WHEN unboxing the extended object
+        const unboxed = extendedObject.unbox({ name: "John Doe", age: 30, dob: "1990-01-01" })
+
+        // THEN the unboxed object is correct
+        expect(unboxed).toEqual({ name: "John Doe", age: 30, dob: new Date("1990-01-01") })
+    })
+
+    test("Should correctly unbox objects extended from optional", () => {
+        // GIVEN an extended object
+        const extendedObject = objectS({
+            name: stringS.notNull,
+            age: intS.notNull
+        }).optional.extend({
+            dob: dateS.notNull
+        })
+
+        // WHEN unboxing the extended object
+        const unboxed = extendedObject.unbox({ name: "John Doe", age: 30, dob: "1990-01-01" })
+
+        // THEN the unboxed object is correct
+        expect(unboxed).toEqual({ name: "John Doe", age: 30, dob: new Date("1990-01-01") })
+    })
+
+    test("Should raise an exception if extending a non-object schema", () => {
+        // GIVEN the normally configured environment
+        // WHEN forcing to extend a non-object schema
+        // THEN an error is thrown
+        expect(() => (arrayS(objectS({
+            name: stringS.notNull,
+            age: intS.notNull
+        })).notNull as any).extend({
+            dob: dateS.notNull
+        })).toThrow("Cannot extend non-object schema")
+    })
+
+    test("Should raise an exception if extending a non-object schema (optional case)", () => {
+        // GIVEN the normally configured environment
+        // WHEN forcing to extend a non-object schema
+        // THEN an error is thrown
+        expect(() => (arrayS(objectS({
+            name: stringS.notNull,
+            age: intS.notNull
+        })).optional as any).extend({
+            dob: dateS.notNull
+        })).toThrow("Cannot extend non-object schema")
+    })
+
     test("Should correctly unbox literal types", () => {
         // GIVEN a literal type
         const literalType = literalS<"test" | "test2">("test", "test2")
@@ -719,6 +775,7 @@ describe("Testing type unboxing", () => {
                 guau: { args: [], retVal: stringS.notNull }
             }
         })
+        type impl = ApiImplementationWithVisibility<typeof api>
 
         // THEN the API is hidden
         expect(api.metadata.hidden).toBeFalsy()

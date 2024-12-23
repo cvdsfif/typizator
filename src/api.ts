@@ -90,7 +90,7 @@ export type ApiMetadata<T extends ApiDefinition> = {
 /**
  * Run-time metadata giving the run-time access to the API structure and data types
  */
-export interface ApiSchema<T extends ApiDefinition, P extends { hidden?: boolean }> {
+export interface ApiSchema<T extends ApiDefinition, _ extends { hidden?: boolean }> {
     get metadata(): ApiMetadata<T>
 }
 class ApiS<T extends ApiDefinition, P extends { hidden?: boolean }> implements ApiSchema<T, P> {

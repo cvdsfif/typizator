@@ -60,7 +60,7 @@ export type FieldsMap = {
     /**
      * Returns the number of fields (and thus field schemas) returned by the object
      */
-    get size(): number
+    get size(): number,
 }
 
 class FieldsMapFacade<T extends SchemaDefinition> implements FieldsMap {
@@ -191,7 +191,13 @@ export interface NotNullFacade<Target, Sources, B extends DefaultBehaviour, Orig
     /**
      * This flag can be used for discriminators
      */
-    readonly notNullFlag: true
+    readonly notNullFlag: true,
+    /**
+     * Extends the object schema with additional fields
+     * @param definition Object containing fields with type definitions
+     * @returns Extended object schema
+     */
+    extend: Original extends ObjectS<infer X> ? <R extends SchemaDefinition>(definition: R) => ObjectS<X & R> : never
 }
 
 class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
@@ -218,6 +224,20 @@ class NotNullFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original ex
         if (source === null || (props?.keepNullString !== true && source === "null")) throw new NullNotAllowedError();
         return this.#unbox(source as AllowNull<Sources, B>, props)!;
     }
+
+    /**
+     * Extends the object schema with additional fields
+     * @param definition Object containing fields with type definitions
+     * @returns Extended object schema
+     */
+    public extend: any =
+        <R extends SchemaDefinition>(definition: R): ObjectS<Original & R> => {
+            if (this.#metadata.dataType !== "object") throw new Error("Cannot extend non-object schema")
+            return objectS({
+                ...((this.#metadata as ObjectMetadata).fields as FieldsMapFacade<any>).definition,
+                ...definition
+            })
+        }
 }
 
 /**
@@ -228,7 +248,13 @@ export interface OptionalFacade<Target, Sources, B extends DefaultBehaviour, Ori
     /**
      * This flag can be used for discriminators
      */
-    readonly optionalFlag: true
+    readonly optionalFlag: true,
+    /**
+     * Extends the object schema with additional fields
+     * @param definition Object containing fields with type definitions
+     * @returns Extended object schema
+     */
+    extend: Original extends ObjectS<infer X> ? <R extends SchemaDefinition>(definition: R) => ObjectS<X & R> : never
 }
 
 class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
@@ -266,8 +292,21 @@ class OptionalFacadeImpl<Target, Sources, B extends DefaultBehaviour, Original e
             if (source === undefined) return undefined
             throw error
         }
-
     }
+
+    /**
+     * Extends the object schema with additional fields
+     * @param definition Object containing fields with type definitions
+     * @returns Extended object schema
+     */
+    public extend: any =
+        <R extends SchemaDefinition>(definition: R): ObjectS<Original & R> => {
+            if (this.#metadata.dataType !== "object") throw new Error("Cannot extend non-object schema")
+            return objectS({
+                ...((this.#metadata as ObjectMetadata).fields as FieldsMapFacade<any>).definition,
+                ...definition
+            })
+        }
 }
 
 export interface ByDefaultFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema<Target, Sources, B>>
@@ -403,6 +442,11 @@ export interface ObjectS<T extends SchemaDefinition> extends ExtendedSchema<Sche
      * Extended metadata containing names and schemas of object's fields
      */
     get metadata(): ObjectMetadata
+    /**
+     * Extends the object schema with additional fields
+     * @param definition Object containing fields with type definitions
+     * @returns Extended object schema
+     */
     extend: <R extends SchemaDefinition>(definition: R) => ObjectS<T & R>
 }
 
