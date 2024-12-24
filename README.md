@@ -117,6 +117,36 @@ literalType.unbox("test2") // OK
 literalType.unbox("test3") // Error
 ```
 
+### Recursive types
+
+You can create recursive types using the `recursiveS` schema factory:
+
+```ts
+test("Should allow recursive object definitions", () => {
+    // GIVEN an object schema
+    const objectSchemaS = objectS({
+        value: stringS.notNull,
+        and: recursiveS,
+        or: recursiveS,
+    })
+
+    // WHEN unboxing the object schema
+    const unboxed = objectSchemaS.unbox({ value: "test", and: { value: "test2", or: { value: "test3" } }, or: { value: "test3" } })
+
+    // THEN the unboxed object is correct
+    expect(unboxed).toEqual({ value: "test", and: { value: "test2", or: { value: "test3" } }, or: { value: "test3" } })
+})
+
+test("Should forbid direct unboxing of recursive schemas", () => {
+    // GIVEN a recursive schema
+    const recursiveSchema = recursiveS
+
+    // WHEN unboxing the recursive schema
+    // THEN an error is thrown
+    expect(() => recursiveSchema.unbox({})).toThrow("Recursive schema cannot be unboxed directly")
+})
+```
+
 ### Infer types from schemas
 
 When you write a schema, you don't need to repeat it in the type definition, Typescript transforms it for you:

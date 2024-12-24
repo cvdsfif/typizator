@@ -1,4 +1,4 @@
-import { ApiImplementation, ApiImplementationWithVisibility, ApiMetadata, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, stringS } from "../src";
+import { ApiImplementation, ApiImplementationWithVisibility, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, recursiveS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
@@ -800,6 +800,29 @@ describe("Testing type unboxing", () => {
                 guau: { args: [], retval: stringS.notNull }
             }
         })).toThrow("Invalid field retval in child/guau")
+    })
 
+    test("Should allow recursive object definitions", () => {
+        // GIVEN an object schema
+        const objectSchemaS = objectS({
+            value: stringS.notNull,
+            and: recursiveS,
+            or: recursiveS,
+        })
+
+        // WHEN unboxing the object schema
+        const unboxed = objectSchemaS.unbox({ value: "test", and: { value: "test2", or: { value: "test3" } }, or: { value: "test3" } })
+
+        // THEN the unboxed object is correct
+        expect(unboxed).toEqual({ value: "test", and: { value: "test2", or: { value: "test3" } }, or: { value: "test3" } })
+    })
+
+    test("Should forbid direct unboxing of recursive schemas", () => {
+        // GIVEN a recursive schema
+        const recursiveSchema = recursiveS
+
+        // WHEN unboxing the recursive schema
+        // THEN an error is thrown
+        expect(() => recursiveSchema.unbox({})).toThrow("Recursive schema cannot be unboxed directly")
     })
 })

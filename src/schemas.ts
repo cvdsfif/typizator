@@ -387,7 +387,7 @@ export abstract class TypeSchema<Target = any, Sources = any, B extends DefaultB
 /**
  * Defines how a complex object's schema must be structured
  */
-export type SchemaDefinition = {
+export interface SchemaDefinition {
     [K: string]: Schema
 }
 
@@ -434,6 +434,13 @@ export const getSchemaSignature = <T extends SchemaDefinition, B extends Default
             ".OPT" : ""}${schema.metadata.hasDefaultRule ? ".DEF" : ""}`
 }
 
+export type RecursiveS = { isRecursive: true } & Schema
+export const recursiveS: RecursiveS = {
+    isRecursive: true,
+    metadata: { dataType: "recursive", notNull: false, optional: true },
+    unbox: () => { throw new Error("Recursive schema cannot be unboxed directly") }
+}
+
 /**
  * Object schema representing a Typescript/Javascript object
  */
@@ -472,7 +479,14 @@ class ObjectSImpl<T extends SchemaDefinition>
         const convertedObject = {} as SchemaTarget<T>
         this._metadata.fields.forEach((key, schema) => {
             try {
-                const unboxedField = schema.unbox(sourceConverted[key as string], props)
+                const boxedField = sourceConverted[key as string]
+                let unboxedField: any
+                if (schema.metadata.dataType === "recursive") {
+                    if (boxedField === undefined || boxedField === null) return
+                    unboxedField = this.unbox(boxedField, props)
+                } else {
+                    unboxedField = schema.unbox(boxedField, props)
+                }
                 if (unboxedField === undefined) return
                 (convertedObject as any)[key as string] = unboxedField
             } catch (e: any) {

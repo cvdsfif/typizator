@@ -1,4 +1,4 @@
-import { NotNullFacade, OptionalFacade, Schema, SchemaDefinition } from "./schemas";
+import { NotNullFacade, OptionalFacade, RecursiveS, Schema, SchemaDefinition } from "./schemas";
 
 /**
  * Transform a schema to its source type making the `.optional` fields optional
@@ -28,14 +28,18 @@ export type InferSourceFromSchema<T> =
     T extends OptionalFacade<any, infer Source, any, any> ? Source | undefined | null :
     T extends Schema<any, infer Source> ? Source | null :
     never;
+
+
 /**
  * Extracts source type from the `objectS` schema's argument
  */
 export type SchemaSource<T extends SchemaDefinition> =
     {
-        [K in keyof T as T[K] extends OptionalFacade<any, any, any, any> ? never : K]: InferSourceFromSchema<T[K]>;
+        [K in keyof T as T[K] extends RecursiveS ? never : T[K] extends OptionalFacade<any, any, any, any> ? never : K]:
+        InferSourceFromSchema<T[K]>
     } & {
-        [K in keyof T as T[K] extends OptionalFacade<any, any, any, any> ? K : never]?: InferSourceFromSchema<T[K]>;
+        [K in keyof T as T[K] extends RecursiveS ? K : T[K] extends OptionalFacade<any, any, any, any> ? K : never]?:
+        T[K] extends RecursiveS ? SchemaSource<T> : InferSourceFromSchema<T[K]>
     } | string;
 
 /**
