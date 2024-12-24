@@ -123,7 +123,7 @@ export type InferSourceForDictionary<V extends Schema> = {
  */
 export type SchemaTarget<T extends SchemaDefinition> =
     {
-        [K in keyof T as T[K] extends OptionalFacade<any, any, any, any> ? never : K]: InferTargetFromSchema<T[K]>
+        [K in keyof T as T[K] extends RecursiveS ? never : T[K] extends OptionalFacade<any, any, any, any> ? never : K]: InferTargetFromSchema<T[K]>
     } & {
-        [K in keyof T as T[K] extends OptionalFacade<any, any, any, any> ? K : never]?: InferTargetFromSchema<T[K]>
+        [K in keyof T as T[K] extends RecursiveS ? K : T[K] extends OptionalFacade<any, any, any, any> ? K : never]?: InferTargetFromSchema<T[K]>
     }

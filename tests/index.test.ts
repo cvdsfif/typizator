@@ -1,4 +1,4 @@
-import { ApiImplementation, ApiImplementationWithVisibility, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, recursiveS, stringS } from "../src";
+import { ApiImplementation, ApiImplementationWithVisibility, InferSourceFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, recursiveS, stringS } from "../src";
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
@@ -809,6 +809,7 @@ describe("Testing type unboxing", () => {
             and: recursiveS,
             or: recursiveS,
         })
+        type RecursiveObject = InferSourceFromSchema<typeof objectSchemaS>
 
         // WHEN unboxing the object schema
         const unboxed = objectSchemaS.unbox({ value: "test", and: { value: "test2", or: { value: "test3" } }, or: { value: "test3" } })
