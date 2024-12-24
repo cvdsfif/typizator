@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 4.4.1 - 2024-12-24
+
 ## 4.4.0 - 2024-12-24
 Literal types now have type enforcement without requiring the use of generic parameters.
 
