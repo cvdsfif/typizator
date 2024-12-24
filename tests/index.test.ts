@@ -714,7 +714,7 @@ describe("Testing type unboxing", () => {
 
     test("Should correctly unbox literal types", () => {
         // GIVEN a literal type
-        const literalType = literalS<"test" | "test2">("test", "test2")
+        const literalType = literalS("test", "test2")
 
         // WHEN unboxing the literal type
         const unboxed = literalType.unbox("test")
@@ -725,7 +725,7 @@ describe("Testing type unboxing", () => {
 
     test("Should fail on unboxing invalid values", () => {
         // GIVEN a literal type
-        const literalType = literalS<"test" | "test2">("test", "test2")
+        const literalType = literalS("test", "test2")
 
         // WHEN unboxing the literal type from an invalid value
         // THEN an error is thrown
@@ -734,7 +734,7 @@ describe("Testing type unboxing", () => {
 
     test("Should show correct metadata for literal types", () => {
         // GIVEN a literal type
-        const literalType = literalS<"test" | "test2">("test", "test2")
+        const literalType = literalS("test", "test2")
 
         // WHEN asking for the metadata
         const metadata = literalType.metadata

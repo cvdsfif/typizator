@@ -35,7 +35,7 @@ class StringSImpl extends TypeSchema<string, string | bigint | number> {
  */
 export const stringS = new StringSImpl() as StringS
 
-export type LiteralS<T> = ExtendedSchema<T, T>
+export type LiteralS<T extends keyof any> = ExtendedSchema<T, T>
 class LiteralSImpl<T> extends TypeSchema<T, T> {
     private _metadata
     private values: T[]
@@ -55,7 +55,7 @@ class LiteralSImpl<T> extends TypeSchema<T, T> {
 /**
  * Primitive type schema representing a string
  */
-export const literalS = <T>(...values: T[]) => new LiteralSImpl<T>(values) as LiteralS<T>
+export const literalS = <T extends keyof any>(...values: T[]) => new LiteralSImpl<T>(values) as LiteralS<T>
 
 /**
  * Type for the int schema.

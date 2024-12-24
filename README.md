@@ -106,7 +106,7 @@ This produces a schema that is compatible with the `simpleRecordS` schema, but w
 You can create literal types using the `literalS` schema factory:
 
 ```ts
-const literalType = literalS<"test" | "test2">("test", "test2")
+const literalType = literalS("test", "test2")
 ```
 
 The `literalS` schema will only unbox values that match one of the literals you provided:
