@@ -1,19 +1,27 @@
 {
     "compilerOptions": {
-        "module": "ES2020",
+        "module": "esnext",
         "esModuleInterop": true,
         "target": "es2020",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
+        "types": [
+            "node",
+            "jest"
+        ],
         "sourceMap": true,
         "outDir": "dist",
-        "rootDir": "src",
+        "rootDir": ".",
         "strict": true,
         "declaration": true,
+        "noEmit": true,
+        "lib": [
+            "es2020",
+            "es2021",
+            "esnext.weakref"
+        ]
     },
     "include": [
-        "src"
-    ],
-    "lib": [
-        "es2020"
+        "src",
+        "tests"
     ]
 }

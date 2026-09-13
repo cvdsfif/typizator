@@ -34,6 +34,16 @@ Primitive types used in this library are actually:
 
 By default, the type of the resulting transformation is nullable, it means that for example the type of `intS.unbox(<something>)` will be `number | null`. To make it strictly a `number` you name to mark it as `intS.notNull`.
 
+If you later need to remove the `.notNull` restriction, you can call `.nullable`. It returns the original nullable schema (the same object when the schema is cached):
+
+```ts
+const strictIntS = intS.notNull
+strictIntS.unbox(null) // throws
+
+const nullableAgainS = strictIntS.nullable
+nullableAgainS.unbox(null) // null
+```
+
 You can combine primitive (and combined) fields to create objects' schemas using the `objectS` schema factory. Let's take tests as an example:
 
 ```ts
@@ -116,6 +126,35 @@ literalType.unbox("test") // OK
 literalType.unbox("test2") // OK
 literalType.unbox("test3") // Error
 ```
+
+### Union types
+
+You can create union types using the `unionS` schema factory. The first schema that successfully unboxes the value wins:
+
+```ts
+const numberOrStringS = unionS(intS.notNull, stringS.notNull)
+
+numberOrStringS.unbox(42)      // 42 (number)
+numberOrStringS.unbox("hello") // "hello" (string)
+numberOrStringS.unbox(null)    // null
+```
+
+The inferred target type is the union of member target types:
+
+```ts
+type NumberOrString = InferTargetFromSchema<typeof numberOrStringS>
+// number | string | null
+```
+
+Union schemas can be marked as `.notNull` or `.optional` just like any other schema, and they can be used inside objects, arrays, dictionaries or even other unions:
+
+```ts
+const recordS = objectS({
+    value: unionS(intS.notNull, stringS.notNull)
+})
+```
+
+The schema signature reflects the union members, for example `(int.NN|string.NN)`.
 
 ### Recursive types
 
@@ -362,6 +401,24 @@ expect(helloWorld.args[1].metadata.dataType).toEqual("bigint")
 expect(helloWorld.args[1].unbox("42")).toEqual(42n)
 expect(helloWorld.retVal.metadata.dataType).toEqual("string")
 expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string")
+```
+
+`apiS` enforces at compile time that every node in the API tree is either:
+- a function call definition (`args`, optional `retVal`, optional `hidden`)
+- or a sub-API containing other nodes
+
+These two shapes cannot be mixed in the same object. Reserved names such as `metadata`, `name` and `path` are also forbidden as field names.
+
+```ts
+// Type error: "hello" is not a valid field on a function definition
+apiS({
+    hello: { args: [], retVal: stringS.notNull, invalidKey: "value" }
+})
+
+// Type error: "args" is not allowed on a sub-API node
+apiS({
+    child: { args: [], hello: { args: [] } }
+})
 ```
 
 ## A little bonus: string tables as well-typed data sources

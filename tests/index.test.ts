@@ -1,10 +1,16 @@
-import { ApiImplementation, ApiImplementationWithVisibility, InferSourceFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, recursiveS, stringS } from "../src";
+import { ApiImplementation, ApiImplementationWithVisibility, InferSourceFromSchema, InferTargetFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, recursiveS, stringS, unionS } from "../src";
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
 
     test("NotImplemented error is thrown correctly", () => {
         expect(() => { throw new NotImplementedError(); }).toThrow(NOT_IMPLEMENTED);
+    });
+
+    test("NotImplemented error can be created without new", () => {
+        const error = NotImplementedError();
+        expect(error).toBeInstanceOf(Error);
+        expect(error.message).toEqual(NOT_IMPLEMENTED);
     });
 
     test("Unboxing a structured type", () => {
@@ -627,6 +633,58 @@ describe("Testing type unboxing", () => {
         expect(Object.is(s1, s2)).toBeFalsy()
     })
 
+    test("Should clean up dead object schema cache entries", () => {
+        // GIVEN a cached object schema and a WeakRef pretending to be dead
+        const sourceSchema = { id: bigintS.notNull };
+        const s1 = objectS(sourceSchema);
+        const originalDeref = WeakRef.prototype.deref;
+        WeakRef.prototype.deref = () => undefined;
+
+        try {
+            // WHEN creating the same schema again
+            const s2 = objectS(sourceSchema);
+
+            // THEN the dead entry is cleaned up and a new schema is created
+            expect(s2).not.toBe(s1);
+        } finally {
+            WeakRef.prototype.deref = originalDeref;
+        }
+    })
+
+    test("Should clean up dead array schema cache entries", () => {
+        // GIVEN a cached array schema and a WeakRef pretending to be dead
+        const s1 = arrayS(stringS.notNull);
+        const originalDeref = WeakRef.prototype.deref;
+        WeakRef.prototype.deref = () => undefined;
+
+        try {
+            // WHEN creating the same schema again
+            const s2 = arrayS(stringS.notNull);
+
+            // THEN the dead entry is cleaned up and a new schema is created
+            expect(s2).not.toBe(s1);
+        } finally {
+            WeakRef.prototype.deref = originalDeref;
+        }
+    })
+
+    test("Should clean up dead dictionary schema cache entries", () => {
+        // GIVEN a cached dictionary schema and a WeakRef pretending to be dead
+        const s1 = dictionaryS(stringS.notNull);
+        const originalDeref = WeakRef.prototype.deref;
+        WeakRef.prototype.deref = () => undefined;
+
+        try {
+            // WHEN creating the same schema again
+            const s2 = dictionaryS(stringS.notNull);
+
+            // THEN the dead entry is cleaned up and a new schema is created
+            expect(s2).not.toBe(s1);
+        } finally {
+            WeakRef.prototype.deref = originalDeref;
+        }
+    })
+
     test("Should correctly treat exceptions on complex objects", () => {
         // GIVEN an array with non nullable fields
         const arrayWithNonNullableFields = arrayS(objectS({
@@ -797,6 +855,7 @@ describe("Testing type unboxing", () => {
         expect(() => apiS({
             meow: { args: [], retVal: stringS.notNull, hidden: true },
             child: {
+                // @ts-expect-error invalid field name is rejected at compile time
                 guau: { args: [], retval: stringS.notNull }
             }
         })).toThrow("Invalid field retval in child/guau")
@@ -825,5 +884,209 @@ describe("Testing type unboxing", () => {
         // WHEN unboxing the recursive schema
         // THEN an error is thrown
         expect(() => recursiveSchema.unbox({})).toThrow("Recursive schema cannot be unboxed directly")
+    })
+
+    test("Should unbox union schemas to the first matching member", () => {
+        // GIVEN a union of int and string
+        const unionSchema = unionS(intS.notNull, stringS.notNull)
+
+        // WHEN unboxing values matching either member
+        // THEN the correct type is returned
+        expect(unionSchema.unbox(42)).toEqual(42)
+        expect(unionSchema.unbox("hello")).toEqual("hello")
+    })
+
+    test("Union schemas should accept numeric strings as int", () => {
+        // GIVEN a union of int and string
+        const unionSchema = unionS(intS.notNull, stringS.notNull)
+
+        // WHEN unboxing a numeric string
+        // THEN it is matched by the int schema first
+        expect(unionSchema.unbox("42")).toEqual(42)
+    })
+
+    test("Union schemas should be nullable by default", () => {
+        // GIVEN a nullable union
+        const unionSchema = unionS(intS.notNull, stringS.notNull)
+
+        // WHEN unboxing null
+        // THEN null is returned
+        expect(unionSchema.unbox(null)).toBeNull()
+    })
+
+    test("Union schemas can be made notNull", () => {
+        // GIVEN a notNull union
+        const unionSchema = unionS(intS.notNull, stringS.notNull).notNull
+
+        // WHEN unboxing null
+        // THEN an error is thrown
+        expect(() => unionSchema.unbox(null as any)).toThrow()
+    })
+
+    test("Union schemas should throw when no member matches", () => {
+        // GIVEN a union of int and bool
+        const unionSchema = unionS(intS.notNull, boolS.notNull)
+
+        // WHEN unboxing a value that matches no member
+        // THEN an error is thrown
+        expect(() => unionSchema.unbox("hello")).toThrow("No matching schema for union")
+    })
+
+    test("Union schemas should expose correct metadata", () => {
+        // GIVEN a union schema
+        const unionSchema = unionS(intS.notNull, stringS.notNull)
+
+        // THEN the metadata describes the union
+        expect(unionSchema.metadata.dataType).toEqual("union")
+        expect(unionSchema.metadata.members.length).toEqual(2)
+        expect(unionSchema.metadata.members[0].metadata.dataType).toEqual("int")
+        expect(unionSchema.metadata.members[1].metadata.dataType).toEqual("string")
+    })
+
+    test("Union schemas should have correct signatures", () => {
+        // GIVEN a union schema
+        const unionSchema = unionS(intS.notNull, stringS.notNull)
+
+        // THEN the signature reflects the union members
+        expect(getSchemaSignature(unionSchema)).toEqual("(int.NN|string.NN)")
+        expect(getSchemaSignature(unionSchema.notNull)).toEqual("(int.NN|string.NN).NN")
+        expect(getSchemaSignature(unionSchema.optional)).toEqual("(int.NN|string.NN).OPT")
+    })
+
+    test("Union schemas should not recreate identical unions", () => {
+        // GIVEN a union schema source
+        const members = [intS.notNull, stringS.notNull] as const
+
+        // WHEN creating the same union twice
+        const s1 = unionS(...members)
+        const s2 = unionS(...members)
+
+        // THEN the two schemas are the same object
+        expect(Object.is(s1, s2)).toBeTruthy()
+    })
+
+    test("Union schemas can be used inside object schemas", () => {
+        // GIVEN an object with a union field
+        const recordS = objectS({
+            value: unionS(intS.notNull, stringS.notNull)
+        })
+
+        // WHEN unboxing the object
+        const unboxed = recordS.unbox({ value: 42 })
+
+        // THEN the union field is correctly unboxed
+        expect(unboxed).toEqual({ value: 42 })
+    })
+
+    test("Union target type should be the union of member targets", () => {
+        // GIVEN a union schema
+        const unionSchema = unionS(intS.notNull, stringS.notNull)
+
+        // THEN the inferred target type is number | string | null
+        type Target = InferTargetFromSchema<typeof unionSchema>
+        const check: Target = null as any
+        expect(check).toBeNull()
+    })
+
+    test("Union schemas with default rules are not cached", () => {
+        // GIVEN a union containing a member with a default rule
+        const unionSchema = unionS(intS.notNull, stringS.byDefault("default"))
+
+        // WHEN creating the same union twice
+        const s1 = unionS(intS.notNull, stringS.byDefault("default"))
+        const s2 = unionS(intS.notNull, stringS.byDefault("default"))
+
+        // THEN the two schemas are different objects
+        expect(Object.is(s1, s2)).toBeFalsy()
+    })
+
+    test("Should return the source schema when calling .nullable on .notNull", () => {
+        // GIVEN a notNull primitive schema
+        const notNullString = stringS.notNull
+
+        // WHEN calling .nullable
+        const nullableString = notNullString.nullable
+
+        // THEN the source schema is returned
+        expect(nullableString).toBe(stringS)
+        expect(nullableString.unbox(null)).toBeNull()
+    })
+
+    test("Should return the source schema when calling .nullable on .notNull object", () => {
+        // GIVEN a notNull object schema
+        const sourceSchema = objectS({ id: intS.notNull })
+        const notNullObject = sourceSchema.notNull
+
+        // WHEN calling .nullable
+        const nullableObject = notNullObject.nullable
+
+        // THEN the source object schema is returned
+        expect(nullableObject).toBe(sourceSchema)
+        expect(nullableObject.unbox(null)).toBeNull()
+    })
+
+    test("Should return the source schema when calling .nullable on .notNull union", () => {
+        // GIVEN a notNull union schema
+        const sourceSchema = unionS(intS.notNull, stringS.notNull)
+        const notNullUnion = sourceSchema.notNull
+
+        // WHEN calling .nullable
+        const nullableUnion = notNullUnion.nullable
+
+        // THEN the source union schema is returned
+        expect(nullableUnion).toBe(sourceSchema)
+        expect(nullableUnion.unbox(null)).toBeNull()
+    })
+
+    test("Should preserve optional when calling .nullable on optional.notNull", () => {
+        // GIVEN an optional.notNull schema
+        const optionalSchema = stringS.optional
+        const notNullOptional = optionalSchema.notNull
+
+        // WHEN calling .nullable
+        const nullableOptional = notNullOptional.nullable
+
+        // THEN the optional source schema is returned
+        expect(nullableOptional).toBe(optionalSchema)
+    })
+
+    test("Should be a no-op when calling .nullable on a non-notNull schema", () => {
+        // GIVEN a nullable schema
+        const nullableSchema = stringS
+
+        // WHEN calling .nullable
+        const result = (nullableSchema as any).nullable
+
+        // THEN the same schema is returned
+        expect(result).toBe(nullableSchema)
+    })
+
+    test("Should update signature when calling .nullable on .notNull", () => {
+        // GIVEN a notNull schema
+        const notNullString = stringS.notNull
+
+        // WHEN calling .nullable
+        const nullableString = notNullString.nullable
+
+        // THEN the signature no longer contains .NN
+        expect(getSchemaSignature(notNullString)).toEqual("string.NN")
+        expect(getSchemaSignature(nullableString)).toEqual("string")
+    })
+
+    test("Should clean up dead union schema cache entries", () => {
+        // GIVEN a cached union schema and a WeakRef pretending to be dead
+        const s1 = unionS(intS.notNull, stringS.notNull)
+        const originalDeref = WeakRef.prototype.deref
+        WeakRef.prototype.deref = () => undefined
+
+        try {
+            // WHEN creating the same schema again
+            const s2 = unionS(intS.notNull, stringS.notNull)
+
+            // THEN the dead entry is cleaned up and a new schema is created
+            expect(s2).not.toBe(s1)
+        } finally {
+            WeakRef.prototype.deref = originalDeref
+        }
     })
 })
