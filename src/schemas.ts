@@ -196,7 +196,17 @@ export type OptionalFacade<Target, Sources, B extends DefaultBehaviour, M extend
         /**
          * Returns a not-null schema that still allows undefined values.
          */
-        notNull: NotNullFacade<Target, Sources, Optional, M>
+        notNull: OptionalNotNullFacade<Target, Sources, B, M>
+    }
+
+/**
+ * Facade for `.optional.notNull`: null is rejected, undefined remains allowed.
+ */
+export type OptionalNotNullFacade<Target, Sources, B extends DefaultBehaviour, M extends TypedMetadata> =
+    Schema<Target | undefined, Sources | undefined, NotNull, M> & {
+        readonly notNullFlag: true,
+        readonly optionalFlag: true,
+        readonly nullable: OptionalFacade<Target, Sources, B, M>
     }
 
 /**

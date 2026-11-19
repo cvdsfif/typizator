@@ -1050,6 +1050,18 @@ describe("Testing type unboxing", () => {
         expect(nullableOptional).toBe(optionalSchema)
     })
 
+    test("Should allow undefined and reject null on optional.notNull", () => {
+        // GIVEN an optional.notNull schema
+        const notNullOptional = stringS.optional.notNull
+
+        // THEN undefined is allowed
+        expect(notNullOptional.unbox(undefined)).toBeUndefined()
+
+        // AND null is rejected at compile time and runtime
+        // @ts-expect-error null is not allowed for optional.notNull
+        expect(() => notNullOptional.unbox(null)).toThrow("Null not allowed")
+    })
+
     test("Should be a no-op when calling .nullable on a non-notNull schema", () => {
         // GIVEN a nullable schema
         const nullableSchema = stringS
