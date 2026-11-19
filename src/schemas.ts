@@ -163,34 +163,62 @@ export type Schema<
      * @returns Value converted to the type managed by the schema
      */
     unbox: (source: AllowNull<Sources, B>, props?: UnboxingProperties) => AllowNull<Target, B>;
-    /**
-     * Indicates that the unboxed value cannot be null. Forbids null source values if true
-     */
-    notNull: Schema<Target, Sources, NotNull, M> & {
+    readonly notNullFlag: boolean;
+    readonly optionalFlag: boolean
+}
+
+/**
+ * Facade schema enforcing the not null restriction on any underlying unboxed object
+ */
+export type NotNullFacade<Target, Sources, B extends DefaultBehaviour, M extends TypedMetadata> =
+    Schema<Target, Sources, NotNull, M> & {
+        /**
+         * This flag can be used for discriminators
+         */
+        readonly notNullFlag: true,
+        readonly optionalFlag: false,
         /**
          * Returns the source schema without the not null restriction, making the value nullable again.
          */
-        nullable: Schema<Target, Sources, { allowNull: true, optional: false }, M>
-    },
-    /**
-     * Indicates that the unboxed value can be undefined or omitted if it is an object's field
-     */
-    optional: Schema<Target | null | undefined, Sources, Optional, M>,
-    /**
-     * Indicates the default unboxing behaviour of the schema depending on the source unboxing value
-     * @param target Either a default value to set or a function returning that default value, or an error to throw, in which case this is acting as a validator
-     * @param condition Function defining the condition when the default value is applied (or the error is thrown). By default, applied when the source is null
-     */
+        readonly nullable: ExtendedSchema<Target, Sources, { allowNull: true, optional: false }, M>
+    }
+
+/**
+ * Facade schema allowing unboxed values to be undefined and making related object fields optional
+ */
+export type OptionalFacade<Target, Sources, B extends DefaultBehaviour, M extends TypedMetadata> =
+    Schema<Target, Sources, Optional, M> & {
+        /**
+         * This flag can be used for discriminators
+         */
+        readonly optionalFlag: true,
+        readonly notNullFlag: false,
+        /**
+         * Returns a not-null schema that still allows undefined values.
+         */
+        notNull: NotNullFacade<Target, Sources, Optional, M>
+    }
+
+/**
+ * Facade schema with a default/validation rule applied during unboxing
+ */
+export type ByDefaultFacade<Target, Sources, B extends DefaultBehaviour, M extends TypedMetadata> =
+    Schema<Target, Sources, B & { hasDefaultRule: true }, M> & {
+        readonly notNullFlag: B extends NotNull ? true : boolean,
+        readonly optionalFlag: B extends Optional ? true : boolean,
+        optional: OptionalFacade<Target, Sources, B, M>
+    }
+
+/**
+ * Modifiers available on any non-facade schema
+ */
+export type SchemaModifiers<Target, Sources, B extends DefaultBehaviour, M extends TypedMetadata> = {
+    notNull: NotNullFacade<Target, Sources, B, M>,
+    optional: OptionalFacade<Target, Sources, B, M>,
     byDefault: (
         target: Target | Error | ((s: Sources) => Target),
         condition?: (source: Sources) => boolean) =>
-        Schema<Target, Sources, B & { hasDefaultRule: true }, M>,
-    /**
-     * Extends the object schema with additional fields
-     * @param definition Object containing fields with type definitions
-     * @returns Extended object schema
-     */
-    extend: M extends ObjectMetadata ? <R extends SchemaDefinition>(definition: R) => ObjectS<M extends ObjectMetadata ? any : never> : never
+        ByDefaultFacade<Target, Sources, B, M>
 }
 
 /**
@@ -201,35 +229,15 @@ export type ExtendedSchema<
     Sources = any,
     B extends DefaultBehaviour = DefaultBehaviour,
     M extends TypedMetadata = TypedMetadata
-> = Schema<Target, Sources, B, M>
-
-/**
- * Facade schema enforcing the not null restriction on any underlying unboxed object
- */
-export type NotNullFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema> =
-    Schema<Target, Sources, NotNull, MetadataForSchema<Original>> & {
-        /**
-         * Returns the source schema without the not null restriction, making the value nullable again.
-         */
-        nullable: Original
-    }
-
-/**
- * Facade schema allowing unboxed values to be undefined and making related object fields optional
- */
-export type OptionalFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema> =
-    Schema<Target | null | undefined, Sources, Optional, MetadataForSchema<Original>>
-
-/**
- * Facade schema with a default/validation rule applied during unboxing
- */
-export type ByDefaultFacade<Target, Sources, B extends DefaultBehaviour, Original extends Schema> =
-    Schema<Target, Sources, B & { hasDefaultRule: true }, MetadataForSchema<Original>>
+> = Schema<Target, Sources, B, M> & SchemaModifiers<Target, Sources, B, M>
 
 /**
  * Utility type to get the type hidden behind a .notNull or .optional facade extension
  */
-export type ExtractFromFacade<T> = T
+export type ExtractFromFacade<T> =
+    T extends NotNullFacade<infer Target, infer Sources, any, infer M> ? ExtendedSchema<Target, Sources, { allowNull: true, optional: false }, M> :
+    T extends OptionalFacade<infer Target, infer Sources, any, infer M> ? ExtendedSchema<Target, Sources, { allowNull: true, optional: false }, M> :
+    T
 
 /**
  * Defines how a complex object's schema must be structured
@@ -238,27 +246,49 @@ export type SchemaDefinition = {
     [K: string]: Schema
 }
 
+type ObjectNotNullFacade<T extends SchemaDefinition> =
+    Schema<SchemaTarget<T>, SchemaSource<T>, NotNull, ObjectMetadata> & {
+        readonly notNullFlag: true,
+        readonly optionalFlag: false,
+        readonly nullable: ObjectS<T>,
+        extend: <R extends SchemaDefinition>(definition: R) => ObjectS<T & R>
+    }
+
+type ObjectOptionalFacade<T extends SchemaDefinition> =
+    Schema<SchemaTarget<T>, SchemaSource<T>, Optional, ObjectMetadata> & {
+        readonly optionalFlag: true,
+        readonly notNullFlag: false,
+        extend: <R extends SchemaDefinition>(definition: R) => ObjectS<T & R>
+    }
+
 /**
  * Object schema representing a Typescript/Javascript object
  */
-export type ObjectS<T extends SchemaDefinition> = Schema<SchemaTarget<T>, SchemaSource<T>, { allowNull: true, optional: false }, ObjectMetadata> & {
-    /**
-     * Extends the object schema with additional fields
-     * @param definition Object containing fields with type definitions
-     * @returns Extended object schema
-     */
-    extend: <R extends SchemaDefinition>(definition: R) => ObjectS<T & R>
-}
+export type ObjectS<T extends SchemaDefinition> =
+    Schema<SchemaTarget<T>, SchemaSource<T>, { allowNull: true, optional: false }, ObjectMetadata> & {
+        notNull: ObjectNotNullFacade<T>,
+        optional: ObjectOptionalFacade<T>,
+        byDefault: (
+            target: SchemaTarget<T> | Error | ((s: SchemaSource<T>) => SchemaTarget<T>),
+            condition?: (source: SchemaSource<T>) => boolean) =>
+            ByDefaultFacade<SchemaTarget<T>, SchemaSource<T>, { allowNull: true, optional: false }, ObjectMetadata>,
+        /**
+         * Extends the object schema with additional fields
+         * @param definition Object containing fields with type definitions
+         * @returns Extended object schema
+         */
+        extend: <R extends SchemaDefinition>(definition: R) => ObjectS<T & R>
+    }
 
 /**
  * Schema representing an array
  */
-export type ArrayS<S extends Schema> = Schema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string, { allowNull: true, optional: false }, ArrayMetadata>
+export type ArrayS<S extends Schema> = ExtendedSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string, { allowNull: true, optional: false }, ArrayMetadata>
 
 /**
  * Schema representing a string-to-object dictionary
  */
-export type DictionaryS<V extends Schema> = Schema<InferTargetForDictionary<V>, InferSourceForDictionary<V> | string, { allowNull: true, optional: false }, DictionaryMetadata>
+export type DictionaryS<V extends Schema> = ExtendedSchema<InferTargetForDictionary<V>, InferSourceForDictionary<V> | string, { allowNull: true, optional: false }, DictionaryMetadata>
 
 type InferUnionTarget<T extends readonly Schema[]> = {
     [K in keyof T]: T[K] extends Schema<infer Target, any, any, any> ? Target : never
@@ -270,15 +300,15 @@ type InferUnionSource<T extends readonly Schema[]> = {
 /**
  * Schema representing a union of several schemas
  */
-export type UnionS<T extends readonly Schema[]> = Schema<InferUnionTarget<T>, InferUnionSource<T>, { allowNull: true, optional: false }, UnionMetadata>
+export type UnionS<T extends readonly Schema[]> = ExtendedSchema<InferUnionTarget<T>, InferUnionSource<T>, { allowNull: true, optional: false }, UnionMetadata>
 
 /**
  * Utility type returning an object schema even if the underlying object is `objectS(...).notNull` or `objectS(...).optional`
  */
 export type ObjectOrFacadeS<T extends SchemaDefinition> =
     ObjectS<T> |
-    Schema<SchemaTarget<T>, SchemaSource<T>, NotNull, ObjectMetadata> |
-    Schema<SchemaTarget<T> | null | undefined, SchemaSource<T>, Optional, ObjectMetadata>
+    ObjectNotNullFacade<T> |
+    ObjectOptionalFacade<T>
 
 const isSchema = (candidate: any): candidate is Schema => candidate?.metadata?.dataType !== undefined
 const isObjectSchema = (candidate: Schema): boolean => candidate.metadata.dataType === "object"
@@ -303,9 +333,11 @@ const schemaPrototype: any = {
 const createSchema = <Target, Sources, M extends TypedMetadata>(
     metadata: M,
     convert: (source: Sources, props?: UnboxingProperties) => Target
-): Schema<Target, Sources, { allowNull: true, optional: false }, M> => {
+): any => {
     const schema = Object.create(schemaPrototype);
     schema.metadata = metadata;
+    schema.notNullFlag = false;
+    schema.optionalFlag = false;
     schema.unbox = (source: AllowNull<Sources, { allowNull: true, optional: false }>, props?: UnboxingProperties): AllowNull<Target, { allowNull: true, optional: false }> => {
         const normalized = defaultUnbox(source, props);
         if (normalized === null) return null as any;
@@ -324,6 +356,8 @@ const getNotNull = (schema: any): any => {
     if (!cached) {
         cached = Object.create(schemaPrototype);
         cached.metadata = { ...schema.metadata, notNull: true, optional: false };
+        cached.notNullFlag = true;
+        cached.optionalFlag = false;
         cached.unbox = (source: any, props?: UnboxingProperties): any => {
             if (source === null || (props?.keepNullString !== true && source === "null")) throw new NullNotAllowedError();
             return schema.unbox(source, props);
@@ -341,6 +375,8 @@ const getOptional = (schema: any): any => {
     if (!cached) {
         cached = Object.create(schemaPrototype);
         cached.metadata = { ...schema.metadata, notNull: false, optional: true };
+        cached.notNullFlag = false;
+        cached.optionalFlag = true;
         cached.unbox = (source: any, props?: UnboxingProperties): any => {
             if (
                 !schema.metadata.hasDefaultRule &&
@@ -375,6 +411,8 @@ const getByDefault = (
     if (!cached) {
         cached = Object.create(schemaPrototype);
         cached.metadata = { ...schema.metadata, hasDefaultRule: true };
+        cached.notNullFlag = schema.notNullFlag ?? false;
+        cached.optionalFlag = schema.optionalFlag ?? false;
         cached.unbox = (source: any, props?: UnboxingProperties): any => {
             if (condition(source)) {
                 if (target instanceof Error) throw target;
@@ -400,7 +438,7 @@ const extendSchema = (schema: any, definition: any): any => {
 export const createPrimitiveSchema = <Target, Sources>(
     dataType: string,
     convert: (source: Sources, props?: UnboxingProperties) => Target
-): Schema<Target, Sources, { allowNull: true, optional: false }, TypedMetadata> =>
+): ExtendedSchema<Target, Sources> =>
     createSchema<Target, Sources, TypedMetadata>({ dataType, notNull: false, optional: false }, convert);
 
 const getObjectSchemaSignature = (schema: FieldsMap): string => {
@@ -449,6 +487,8 @@ const createObjectSchema = <T extends SchemaDefinition>(definition: T): ObjectS<
     };
     const schema: any = Object.create(schemaPrototype);
     schema.metadata = metadata;
+    schema.notNullFlag = false;
+    schema.optionalFlag = false;
     schema.unbox = (source: any, props?: UnboxingProperties): any => {
         const normalized = defaultUnbox(source, props);
         if (normalized === null) return null;
