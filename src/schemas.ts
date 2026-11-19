@@ -1,12 +1,12 @@
-import { FieldMissingError, JSONArrayNotFoundError, NullNotAllowedError, SourceNotObjectError } from "./errors";
-import { InferSourceForDictionary, InferSourceFromSchema, InferTargetForDictionary, InferTargetFromSchema, SchemaSource, SchemaTarget } from "./type-conversions";
-import JSONBig from "json-bigint";
+import { FieldMissingError, JSONArrayNotFoundError, NullNotAllowedError, SourceNotObjectError } from "./errors"
+import { InferSourceForDictionary, InferSourceFromSchema, InferTargetForDictionary, InferTargetFromSchema, SchemaSource, SchemaTarget } from "./type-conversions"
+import JSONBig from "json-bigint"
 
 export type DefaultBehaviour = { allowNull: boolean, optional: boolean, hasDefaultRule?: boolean }
 export type NotNull = { allowNull: false, optional: false }
 export type Optional = { allowNull: true, optional: true }
 
-export type AllowNull<T, B extends DefaultBehaviour> = B extends NotNull ? T : B extends Optional ? T | null | undefined : T | null;
+export type AllowNull<T, B extends DefaultBehaviour> = B extends NotNull ? T : B extends Optional ? T | null | undefined : T | null
 
 /**
  * Setting that define the way the object described by the schema is unboxed
@@ -162,7 +162,7 @@ export type Schema<
      * @param props Unboxing options. By default, "null" string is unboxed as null, but "undefined" string as an "undefined" string
      * @returns Value converted to the type managed by the schema
      */
-    unbox: (source: AllowNull<Sources, B>, props?: UnboxingProperties) => AllowNull<Target, B>;
+    unbox: (source: AllowNull<Sources, B>, props?: UnboxingProperties) => AllowNull<Target, B>
     /**
      * Indicates that the unboxed value cannot be null. Forbids null source values if true
      */
@@ -262,10 +262,10 @@ export type DictionaryS<V extends Schema> = Schema<InferTargetForDictionary<V>, 
 
 type InferUnionTarget<T extends readonly Schema[]> = {
     [K in keyof T]: T[K] extends Schema<infer Target, any, any, any> ? Target : never
-}[number];
+}[number]
 type InferUnionSource<T extends readonly Schema[]> = {
     [K in keyof T]: T[K] extends Schema<any, infer Source, any, any> ? Source : never
-}[number];
+}[number]
 
 /**
  * Schema representing a union of several schemas
@@ -287,134 +287,134 @@ const isDictionarySchema = (candidate: Schema): boolean => candidate.metadata.da
 const isUnionSchema = (candidate: Schema): boolean => candidate.metadata.dataType === "union"
 
 const defaultUnbox = (source: any, props?: UnboxingProperties): any => {
-    if (source === null || (props?.keepNullString !== true && source === "null")) return null;
-    if (source === undefined || (props?.keepUndefinedString === false && source === "undefined")) throw new FieldMissingError();
-    return source;
+    if (source === null || (props?.keepNullString !== true && source === "null")) return null
+    if (source === undefined || (props?.keepUndefinedString === false && source === "undefined")) throw new FieldMissingError()
+    return source
 }
 
 const schemaPrototype: any = {
-    get notNull() { return getNotNull(this); },
-    get optional() { return getOptional(this); },
-    get nullable() { return getNullable(this); },
-    byDefault(this: any, target: any, condition?: any) { return getByDefault(this, target, condition); },
-    extend(this: any, definition: any) { return extendSchema(this, definition); }
-};
+    get notNull() { return getNotNull(this) },
+    get optional() { return getOptional(this) },
+    get nullable() { return getNullable(this) },
+    byDefault(this: any, target: any, condition?: any) { return getByDefault(this, target, condition) },
+    extend(this: any, definition: any) { return extendSchema(this, definition) }
+}
 
 const createSchema = <Target, Sources, M extends TypedMetadata>(
     metadata: M,
     convert: (source: Sources, props?: UnboxingProperties) => Target
 ): Schema<Target, Sources, { allowNull: true, optional: false }, M> => {
-    const schema = Object.create(schemaPrototype);
-    schema.metadata = metadata;
+    const schema = Object.create(schemaPrototype)
+    schema.metadata = metadata
     schema.unbox = (source: AllowNull<Sources, { allowNull: true, optional: false }>, props?: UnboxingProperties): AllowNull<Target, { allowNull: true, optional: false }> => {
-        const normalized = defaultUnbox(source, props);
-        if (normalized === null) return null as any;
-        return convert(normalized as Sources, props) as any;
-    };
-    return schema;
+        const normalized = defaultUnbox(source, props)
+        if (normalized === null) return null as any
+        return convert(normalized as Sources, props) as any
+    }
+    return schema
 }
 
-const notNullCache = new WeakMap<any, any>();
-const nullableSourceMap = new WeakMap<any, any>();
-const optionalCache = new WeakMap<any, any>();
-const byDefaultCache = new WeakMap<any, Map<any, any>>();
+const notNullCache = new WeakMap<any, any>()
+const nullableSourceMap = new WeakMap<any, any>()
+const optionalCache = new WeakMap<any, any>()
+const byDefaultCache = new WeakMap<any, Map<any, any>>()
 
 const getNotNull = (schema: any): any => {
-    let cached = notNullCache.get(schema);
+    let cached = notNullCache.get(schema)
     if (!cached) {
-        cached = Object.create(schemaPrototype);
-        cached.metadata = { ...schema.metadata, notNull: true, optional: false };
+        cached = Object.create(schemaPrototype)
+        cached.metadata = { ...schema.metadata, notNull: true, optional: false }
         cached.unbox = (source: any, props?: UnboxingProperties): any => {
-            if (source === null || (props?.keepNullString !== true && source === "null")) throw new NullNotAllowedError();
-            return schema.unbox(source, props);
-        };
-        nullableSourceMap.set(cached, schema);
-        notNullCache.set(schema, cached);
+            if (source === null || (props?.keepNullString !== true && source === "null")) throw new NullNotAllowedError()
+            return schema.unbox(source, props)
+        }
+        nullableSourceMap.set(cached, schema)
+        notNullCache.set(schema, cached)
     }
-    return cached;
-};
+    return cached
+}
 
-const getNullable = (schema: any): any => nullableSourceMap.get(schema) ?? schema;
+const getNullable = (schema: any): any => nullableSourceMap.get(schema) ?? schema
 
 const getOptional = (schema: any): any => {
-    let cached = optionalCache.get(schema);
+    let cached = optionalCache.get(schema)
     if (!cached) {
-        cached = Object.create(schemaPrototype);
-        cached.metadata = { ...schema.metadata, notNull: false, optional: true };
+        cached = Object.create(schemaPrototype)
+        cached.metadata = { ...schema.metadata, notNull: false, optional: true }
         cached.unbox = (source: any, props?: UnboxingProperties): any => {
             if (
                 !schema.metadata.hasDefaultRule &&
                 (source === undefined || (props?.keepUndefinedString === false && source === "undefined"))
             ) {
-                return undefined;
+                return undefined
             }
             try {
-                return schema.unbox(source, props);
+                return schema.unbox(source, props)
             } catch (e) {
-                if (source === undefined) return undefined;
-                throw e;
+                if (source === undefined) return undefined
+                throw e
             }
-        };
-        optionalCache.set(schema, cached);
+        }
+        optionalCache.set(schema, cached)
     }
-    return cached;
-};
+    return cached
+}
 
 const getByDefault = (
     schema: any,
     target: any,
     condition: (source: any) => boolean = (source => source === null || source === undefined)
 ): any => {
-    const defaultKey = { target, condition };
-    let inner = byDefaultCache.get(schema);
+    const defaultKey = { target, condition }
+    let inner = byDefaultCache.get(schema)
     if (!inner) {
-        inner = new Map();
-        byDefaultCache.set(schema, inner);
+        inner = new Map()
+        byDefaultCache.set(schema, inner)
     }
-    let cached = inner.get(defaultKey);
+    let cached = inner.get(defaultKey)
     if (!cached) {
-        cached = Object.create(schemaPrototype);
-        cached.metadata = { ...schema.metadata, hasDefaultRule: true };
+        cached = Object.create(schemaPrototype)
+        cached.metadata = { ...schema.metadata, hasDefaultRule: true }
         cached.unbox = (source: any, props?: UnboxingProperties): any => {
             if (condition(source)) {
-                if (target instanceof Error) throw target;
-                if (typeof target === "function") return target(source);
-                return target;
+                if (target instanceof Error) throw target
+                if (typeof target === "function") return target(source)
+                return target
             }
-            return schema.unbox(source, props);
-        };
-        inner.set(defaultKey, cached);
+            return schema.unbox(source, props)
+        }
+        inner.set(defaultKey, cached)
     }
-    return cached;
-};
+    return cached
+}
 
 const extendSchema = (schema: any, definition: any): any => {
-    if (schema.metadata.dataType !== "object") throw new Error("Cannot extend non-object schema");
-    const currentDefinition: SchemaDefinition = {};
+    if (schema.metadata.dataType !== "object") throw new Error("Cannot extend non-object schema")
+    const currentDefinition: SchemaDefinition = {}
     schema.metadata.fields.forEach((key: string, s: Schema) => {
-        currentDefinition[key] = s;
-    });
-    return objectS({ ...currentDefinition, ...definition });
-};
+        currentDefinition[key] = s
+    })
+    return objectS({ ...currentDefinition, ...definition })
+}
 
 export const createPrimitiveSchema = <Target, Sources>(
     dataType: string,
     convert: (source: Sources, props?: UnboxingProperties) => Target
 ): Schema<Target, Sources, { allowNull: true, optional: false }, TypedMetadata> =>
-    createSchema<Target, Sources, TypedMetadata>({ dataType, notNull: false, optional: false }, convert);
+    createSchema<Target, Sources, TypedMetadata>({ dataType, notNull: false, optional: false }, convert)
 
 const getObjectSchemaSignature = (schema: FieldsMap): string => {
-    return `{${schema.map((fieldName, schema) => `${fieldName}:${getSchemaSignature(schema)}`).join(",")}}`;
+    return `{${schema.map((fieldName, schema) => `${fieldName}:${getSchemaSignature(schema)}`).join(",")}}`
 }
 
 const getTypeSchemaSignature = (schema: Schema | SchemaDefinition): string => {
-    if (!isSchema(schema)) return getObjectSchemaSignature(createFieldsMap(schema as SchemaDefinition));
+    if (!isSchema(schema)) return getObjectSchemaSignature(createFieldsMap(schema as SchemaDefinition))
     if (isObjectSchema(schema))
-        return getObjectSchemaSignature((schema.metadata as ObjectMetadata).fields);
-    if (isArraySchema(schema)) return `${getSchemaSignature((schema.metadata as ArrayMetadata).elements)}[]`;
-    if (isDictionarySchema(schema)) return `{[string]:${getSchemaSignature((schema.metadata as DictionaryMetadata).values)}}`;
-    if (isUnionSchema(schema)) return `(${(schema.metadata as UnionMetadata).members.map(getSchemaSignature).join("|")})`;
-    return schema.metadata.dataType;
+        return getObjectSchemaSignature((schema.metadata as ObjectMetadata).fields)
+    if (isArraySchema(schema)) return `${getSchemaSignature((schema.metadata as ArrayMetadata).elements)}[]`
+    if (isDictionarySchema(schema)) return `{[string]:${getSchemaSignature((schema.metadata as DictionaryMetadata).values)}}`
+    if (isUnionSchema(schema)) return `(${(schema.metadata as UnionMetadata).members.map(getSchemaSignature).join("|")})`
+    return schema.metadata.dataType
 }
 
 /**
@@ -423,10 +423,10 @@ const getTypeSchemaSignature = (schema: Schema | SchemaDefinition): string => {
  * @returns Signature detailing the schema's structure
  */
 export const getSchemaSignature = (schema: Schema | SchemaDefinition): string => {
-    if (!isSchema(schema)) return getTypeSchemaSignature(schema);
+    if (!isSchema(schema)) return getTypeSchemaSignature(schema)
     return `${getTypeSchemaSignature(schema)}${schema.metadata.notNull ?
         ".NN" : schema.metadata.optional ?
-            ".OPT" : ""}${schema.metadata.hasDefaultRule ? ".DEF" : ""}`;
+            ".OPT" : ""}${schema.metadata.hasDefaultRule ? ".DEF" : ""}`
 }
 
 export type RecursiveS = { isRecursive: true } & Schema<any, any, { allowNull: true, optional: false }, TypedMetadata>
@@ -446,39 +446,39 @@ const createObjectSchema = <T extends SchemaDefinition>(definition: T): ObjectS<
         fields: createFieldsMap(definition),
         notNull: false,
         optional: false
-    };
-    const schema: any = Object.create(schemaPrototype);
-    schema.metadata = metadata;
+    }
+    const schema: any = Object.create(schemaPrototype)
+    schema.metadata = metadata
     schema.unbox = (source: any, props?: UnboxingProperties): any => {
-        const normalized = defaultUnbox(source, props);
-        if (normalized === null) return null;
-        const sourceConverted = typeof normalized === "string" ? JSONBig.parse(normalized) : normalized;
-        const convertedObject: any = {};
+        const normalized = defaultUnbox(source, props)
+        if (normalized === null) return null
+        const sourceConverted = typeof normalized === "string" ? JSONBig.parse(normalized) : normalized
+        const convertedObject: any = {}
         metadata.fields.forEach((key, fieldSchema) => {
             try {
-                const boxedField = sourceConverted[key];
-                let unboxedField: any;
+                const boxedField = sourceConverted[key]
+                let unboxedField: any
                 if ((fieldSchema as RecursiveS).isRecursive) {
-                    if (boxedField === undefined || boxedField === null) return;
-                    unboxedField = schema.unbox(boxedField, props);
+                    if (boxedField === undefined || boxedField === null) return
+                    unboxedField = schema.unbox(boxedField, props)
                 } else {
-                    unboxedField = fieldSchema.unbox(boxedField, props);
+                    unboxedField = fieldSchema.unbox(boxedField, props)
                 }
-                if (unboxedField === undefined) return;
-                convertedObject[key] = unboxedField;
+                if (unboxedField === undefined) return
+                convertedObject[key] = unboxedField
             } catch (e: any) {
-                const elementStringified = JSONBig.stringify(sourceConverted[key]);
-                throw new Error(`Unboxing ${key}, value: ${elementStringified}: ${e.message}`);
+                const elementStringified = JSONBig.stringify(sourceConverted[key])
+                throw new Error(`Unboxing ${key}, value: ${elementStringified}: ${e.message}`)
             }
-        });
-        return convertedObject;
-    };
-    return schema;
+        })
+        return convertedObject
+    }
+    return schema
 }
 
-const objectCache = new Map<string, WeakRef<any>>();
-const cleanupObjectCache = (key: string) => objectCache.delete(key);
-const objectCacheRegistry = new FinalizationRegistry<string>(cleanupObjectCache);
+const objectCache = new Map<string, WeakRef<any>>()
+const cleanupObjectCache = (key: string) => objectCache.delete(key)
+const objectCacheRegistry = new FinalizationRegistry<string>(cleanupObjectCache)
 
 /**
  * Returns an object schema representing a Typescript/Javascript object with typed fields
@@ -502,20 +502,20 @@ const objectCacheRegistry = new FinalizationRegistry<string>(cleanupObjectCache)
  * ```
  */
 export const objectS = <T extends SchemaDefinition>(definition: T): ObjectS<T> => {
-    const signature = getSchemaSignature(definition);
+    const signature = getSchemaSignature(definition)
     if (signature.indexOf(".DEF") > 0) {
-        return createObjectSchema(definition);
+        return createObjectSchema(definition)
     }
-    const existing = objectCache.get(signature);
+    const existing = objectCache.get(signature)
     if (existing) {
-        const cached = existing.deref();
-        if (cached) return cached;
-        cleanupObjectCache(signature);
+        const cached = existing.deref()
+        if (cached) return cached
+        cleanupObjectCache(signature)
     }
-    const schema = createObjectSchema(definition);
-    objectCache.set(signature, new WeakRef(schema));
-    objectCacheRegistry.register(schema, signature);
-    return schema;
+    const schema = createObjectSchema(definition)
+    objectCache.set(signature, new WeakRef(schema))
+    objectCacheRegistry.register(schema, signature)
+    return schema
 }
 
 const createArraySchema = <S extends Schema>(elements: S): ArrayS<S> => {
@@ -524,27 +524,27 @@ const createArraySchema = <S extends Schema>(elements: S): ArrayS<S> => {
         elements,
         notNull: false,
         optional: false
-    };
+    }
     return createSchema<InferTargetFromSchema<S>[], InferSourceFromSchema<S>[] | string, ArrayMetadata>(
         metadata,
         (source, props) => {
-            const sourceConverted = typeof source === "string" ? JSONBig.parse(source) : source;
-            if (!Array.isArray(sourceConverted)) throw new JSONArrayNotFoundError();
+            const sourceConverted = typeof source === "string" ? JSONBig.parse(source) : source
+            if (!Array.isArray(sourceConverted)) throw new JSONArrayNotFoundError()
             return sourceConverted.map((element: any, idx) => {
                 try {
-                    return elements.unbox(element, props) as InferTargetFromSchema<S>;
+                    return elements.unbox(element, props) as InferTargetFromSchema<S>
                 } catch (e: any) {
-                    const elementStringified = JSONBig.stringify(element);
-                    throw new Error(`Unboxing array element ${idx}, value: ${elementStringified}: ${e.message}`);
+                    const elementStringified = JSONBig.stringify(element)
+                    throw new Error(`Unboxing array element ${idx}, value: ${elementStringified}: ${e.message}`)
                 }
-            });
+            })
         }
-    );
+    )
 }
 
-const arrayCache = new Map<string, WeakRef<any>>();
-const cleanupArrayCache = (key: string) => arrayCache.delete(key);
-const arrayCacheRegistry = new FinalizationRegistry<string>(cleanupArrayCache);
+const arrayCache = new Map<string, WeakRef<any>>()
+const cleanupArrayCache = (key: string) => arrayCache.delete(key)
+const arrayCacheRegistry = new FinalizationRegistry<string>(cleanupArrayCache)
 
 /**
  * Returns a schema object representing the array of elements of the same type
@@ -560,20 +560,20 @@ const arrayCacheRegistry = new FinalizationRegistry<string>(cleanupArrayCache);
  * ```
  */
 export const arrayS = <S extends Schema>(elements: S): ArrayS<S> => {
-    const signature = getSchemaSignature(elements);
+    const signature = getSchemaSignature(elements)
     if (signature.indexOf(".DEF") > 0) {
-        return createArraySchema(elements);
+        return createArraySchema(elements)
     }
-    const existing = arrayCache.get(signature);
+    const existing = arrayCache.get(signature)
     if (existing) {
-        const cached = existing.deref();
-        if (cached) return cached;
-        cleanupArrayCache(signature);
+        const cached = existing.deref()
+        if (cached) return cached
+        cleanupArrayCache(signature)
     }
-    const schema = createArraySchema(elements);
-    arrayCache.set(signature, new WeakRef(schema));
-    arrayCacheRegistry.register(schema, signature);
-    return schema;
+    const schema = createArraySchema(elements)
+    arrayCache.set(signature, new WeakRef(schema))
+    arrayCacheRegistry.register(schema, signature)
+    return schema
 }
 
 const createDictionarySchema = <V extends Schema>(values: V): DictionaryS<V> => {
@@ -582,28 +582,28 @@ const createDictionarySchema = <V extends Schema>(values: V): DictionaryS<V> => 
         values,
         notNull: false,
         optional: false
-    };
+    }
     return createSchema<InferTargetForDictionary<V>, InferSourceForDictionary<V> | string, DictionaryMetadata>(
         metadata,
         (source, props) => {
-            const sourceConverted = typeof source === "string" ? JSONBig.parse(source) : source;
-            if (typeof sourceConverted !== "object" || Array.isArray(sourceConverted)) throw new SourceNotObjectError();
+            const sourceConverted = typeof source === "string" ? JSONBig.parse(source) : source
+            if (typeof sourceConverted !== "object" || Array.isArray(sourceConverted)) throw new SourceNotObjectError()
             return Object.keys(sourceConverted).reduce((accumulator: any, key) => {
                 try {
-                    accumulator[key] = values.unbox((sourceConverted as any)[key], props);
+                    accumulator[key] = values.unbox((sourceConverted as any)[key], props)
                 } catch (e: any) {
-                    const elementStringified = JSONBig.stringify((sourceConverted as any)[key]);
-                    throw new Error(`Unboxing dictionary element ${key}, value: ${elementStringified}: ${e.message}`);
+                    const elementStringified = JSONBig.stringify((sourceConverted as any)[key])
+                    throw new Error(`Unboxing dictionary element ${key}, value: ${elementStringified}: ${e.message}`)
                 }
-                return accumulator;
-            }, {} as InferTargetForDictionary<V>);
+                return accumulator
+            }, {} as InferTargetForDictionary<V>)
         }
-    );
+    )
 }
 
-const dictionaryCache = new Map<string, WeakRef<any>>();
-const cleanupDictionaryCache = (key: string) => dictionaryCache.delete(key);
-const dictionaryCacheRegistry = new FinalizationRegistry<string>(cleanupDictionaryCache);
+const dictionaryCache = new Map<string, WeakRef<any>>()
+const cleanupDictionaryCache = (key: string) => dictionaryCache.delete(key)
+const dictionaryCacheRegistry = new FinalizationRegistry<string>(cleanupDictionaryCache)
 
 /**
  * Returns a schema object representing the string-to-object dictionary of elements of the same type
@@ -621,20 +621,20 @@ const dictionaryCacheRegistry = new FinalizationRegistry<string>(cleanupDictiona
  * ```
  */
 export const dictionaryS = <V extends Schema>(values: V): DictionaryS<V> => {
-    const signature = getSchemaSignature(values);
+    const signature = getSchemaSignature(values)
     if (signature.indexOf(".DEF") > 0) {
-        return createDictionarySchema(values);
+        return createDictionarySchema(values)
     }
-    const existing = dictionaryCache.get(signature);
+    const existing = dictionaryCache.get(signature)
     if (existing) {
-        const cached = existing.deref();
-        if (cached) return cached;
-        cleanupDictionaryCache(signature);
+        const cached = existing.deref()
+        if (cached) return cached
+        cleanupDictionaryCache(signature)
     }
-    const schema = createDictionarySchema(values);
-    dictionaryCache.set(signature, new WeakRef(schema));
-    dictionaryCacheRegistry.register(schema, signature);
-    return schema;
+    const schema = createDictionarySchema(values)
+    dictionaryCache.set(signature, new WeakRef(schema))
+    dictionaryCacheRegistry.register(schema, signature)
+    return schema
 }
 
 const createUnionSchema = <T extends Schema[]>(members: T): UnionS<T> => {
@@ -643,26 +643,26 @@ const createUnionSchema = <T extends Schema[]>(members: T): UnionS<T> => {
         members,
         notNull: false,
         optional: false
-    };
+    }
     return createSchema<InferUnionTarget<T>, InferUnionSource<T>, UnionMetadata>(
         metadata,
         (source, props) => {
-            const errors: string[] = [];
+            const errors: string[] = []
             for (const member of members) {
                 try {
-                    return member.unbox(source, props) as InferUnionTarget<T>;
+                    return member.unbox(source, props) as InferUnionTarget<T>
                 } catch (e: any) {
-                    errors.push(e.message);
+                    errors.push(e.message)
                 }
             }
-            throw new Error(`No matching schema for union: ${errors.join("; ")}`);
+            throw new Error(`No matching schema for union: ${errors.join("; ")}`)
         }
-    );
+    )
 }
 
-const unionCache = new Map<string, WeakRef<any>>();
-const cleanupUnionCache = (key: string) => unionCache.delete(key);
-const unionCacheRegistry = new FinalizationRegistry<string>(cleanupUnionCache);
+const unionCache = new Map<string, WeakRef<any>>()
+const cleanupUnionCache = (key: string) => unionCache.delete(key)
+const unionCacheRegistry = new FinalizationRegistry<string>(cleanupUnionCache)
 
 /**
  * Returns a schema representing the union of several schemas. The first schema that successfully unboxes the value wins.
@@ -678,18 +678,18 @@ const unionCacheRegistry = new FinalizationRegistry<string>(cleanupUnionCache);
  * ```
  */
 export const unionS = <T extends Schema[]>(...members: T): UnionS<T> => {
-    const signature = members.map(getSchemaSignature).join("|");
+    const signature = members.map(getSchemaSignature).join("|")
     if (signature.indexOf(".DEF") > 0) {
-        return createUnionSchema(members);
+        return createUnionSchema(members)
     }
-    const existing = unionCache.get(signature);
+    const existing = unionCache.get(signature)
     if (existing) {
-        const cached = existing.deref();
-        if (cached) return cached;
-        cleanupUnionCache(signature);
+        const cached = existing.deref()
+        if (cached) return cached
+        cleanupUnionCache(signature)
     }
-    const schema = createUnionSchema(members);
-    unionCache.set(signature, new WeakRef(schema));
-    unionCacheRegistry.register(schema, signature);
-    return schema;
+    const schema = createUnionSchema(members)
+    unionCache.set(signature, new WeakRef(schema))
+    unionCacheRegistry.register(schema, signature)
+    return schema
 }

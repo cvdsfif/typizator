@@ -90,7 +90,7 @@ expect(simpleRecordS.unbox({
 .toEqual({ 
     id: 12345678901234567890n, 
     name: undefined 
-});
+})
 expect(simpleRecordS.unbox({ 
     id: 12345678901234567890n 
 }))
@@ -228,7 +228,7 @@ expect(
 expect(
     () => simpleRecordS.unbox(`{ "id": null, "name": 12345678901234567890 }`)
 )
-.toThrow("Unboxing id, value: null: Null not allowed");
+.toThrow("Unboxing id, value: null: Null not allowed")
 // An exception is also thrown if a non-`.optional` field is missing
 expect(
     () => simpleRecordS.unbox(`{ "id": 12345678901234567890 }`)
@@ -376,10 +376,13 @@ const simpleApiS = apiS({
 })
 
 // The implementation is well-typed and doesn't let you violate your type schema
-let isMeow = true;
+let isMeow = true
 const implementation = {
     meow: async () => Promise.resolve("Miaou!"),
-    noMeow: async () => { isMeow = false; Promise.resolve(); },
+    noMeow: async () => {
+        isMeow = false
+        Promise.resolve()
+    },
     helloWorld: async (name: string, id: bigint) => Promise.resolve(`Hello ${name}, your id is ${id + 1n}`),
     cruel: {
         world: async (val: string) => Promise.resolve(`${val}, this world is cruel`)

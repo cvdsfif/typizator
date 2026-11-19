@@ -11,4 +11,4 @@ module.exports = {
     collectCoverage: true,
     collectCoverageFrom: ['!tests/*', '!**/dist/**/*', '!tests/**/*'],
     coverageReporters: ['json-summary', 'text']
-};
+}

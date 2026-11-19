@@ -1,5 +1,5 @@
-const esbuild = require("esbuild");
-const { dependencies } = require("./package.json");
+const esbuild = require("esbuild")
+const { dependencies } = require("./package.json")
 
 const commonConfig = {
     entryPoints: ["./src/index.ts"],
@@ -14,10 +14,10 @@ esbuild.buildSync({
     ...commonConfig,
     format: "cjs",
     outfile: "./dist/index.cjs.js"
-});
+})
 
 esbuild.buildSync({
     ...commonConfig,
     format: "esm",
     outfile: "./dist/index.esm.js"
-});
+})

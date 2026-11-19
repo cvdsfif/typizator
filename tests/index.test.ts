@@ -1,62 +1,62 @@
-import { ApiImplementation, ApiImplementationWithVisibility, InferSourceFromSchema, InferTargetFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, recursiveS, stringS, unionS } from "../src";
+import { ApiImplementation, ApiImplementationWithVisibility, InferSourceFromSchema, InferTargetFromSchema, InvalidBooleanError, InvalidDateError, InvalidNumberError, JSONArrayNotFoundError, NOT_IMPLEMENTED, NotImplementedError, SourceNotObjectError, always, apiS, arrayS, bigintS, boolS, dateS, dictionaryS, floatS, getSchemaSignature, intS, literalS, objectS, recursiveS, stringS, unionS } from "../src"
 import { BigNumber } from "bignumber.js"
 
 describe("Testing type unboxing", () => {
 
     test("NotImplemented error is thrown correctly", () => {
-        expect(() => { throw new NotImplementedError(); }).toThrow(NOT_IMPLEMENTED);
-    });
+        expect(() => { throw new NotImplementedError() }).toThrow(NOT_IMPLEMENTED)
+    })
 
     test("NotImplemented error can be created without new", () => {
-        const error = NotImplementedError();
-        expect(error).toBeInstanceOf(Error);
-        expect(error.message).toEqual(NOT_IMPLEMENTED);
-    });
+        const error = NotImplementedError()
+        expect(error).toBeInstanceOf(Error)
+        expect(error.message).toEqual(NOT_IMPLEMENTED)
+    })
 
     test("Unboxing a structured type", () => {
         const simpleRecordS = objectS({
             id: bigintS.notNull,
             name: stringS
-        });
+        })
         expect(simpleRecordS.unbox({ id: "12345678901234567890", name: "Any name" }))
-            .toEqual({ id: 12345678901234567890n, name: "Any name" });
+            .toEqual({ id: 12345678901234567890n, name: "Any name" })
         expect(simpleRecordS.unbox({ id: 1234567890, name: 42 }))
-            .toEqual({ id: 1234567890n, name: "42" });
+            .toEqual({ id: 1234567890n, name: "42" })
         expect(simpleRecordS.unbox({ id: 12345678901234567890n, name: 12345678901234567890n }))
-            .toEqual({ id: 12345678901234567890n, name: "12345678901234567890" });
+            .toEqual({ id: 12345678901234567890n, name: "12345678901234567890" })
         expect(simpleRecordS.unbox({ id: 12345678901234567890n, name: null }))
-            .toEqual({ id: 12345678901234567890n, name: null });
-        expect(simpleRecordS.unbox(null)).toEqual(null);
-    });
+            .toEqual({ id: 12345678901234567890n, name: null })
+        expect(simpleRecordS.unbox(null)).toEqual(null)
+    })
 
     test("Unboxing a structured type with an optional field", () => {
         const simpleRecordS = objectS({
             id: bigintS.notNull,
             name: stringS.optional
-        });
+        })
         expect(simpleRecordS.unbox({ id: "12345678901234567890", name: "Any name" }))
-            .toEqual({ id: 12345678901234567890n, name: "Any name" });
+            .toEqual({ id: 12345678901234567890n, name: "Any name" })
         expect(simpleRecordS.unbox({ id: 12345678901234567890n }))
-            .toEqual({ id: 12345678901234567890n, name: undefined });
+            .toEqual({ id: 12345678901234567890n, name: undefined })
         expect(simpleRecordS.unbox({ id: 12345678901234567890n }))
-            .toEqual({ id: 12345678901234567890n });
-    });
+            .toEqual({ id: 12345678901234567890n })
+    })
 
     test("Unboxing a structured type from a JSON string", () => {
         const simpleRecordS = objectS({
             id: bigintS.notNull,
             name: stringS
-        });
+        })
         expect(simpleRecordS.unbox(`{ "id": "12345678901234567890", "name": "Any name" }`))
-            .toEqual({ id: 12345678901234567890n, name: "Any name" });
+            .toEqual({ id: 12345678901234567890n, name: "Any name" })
         expect(simpleRecordS.unbox(`{ "id": 12345678901234567890, "name": 12345678901234567890 }`))
-            .toEqual({ id: 12345678901234567890n, name: "12345678901234567890" });
+            .toEqual({ id: 12345678901234567890n, name: "12345678901234567890" })
         expect(() => simpleRecordS.unbox(`{ "id": null, "name": 12345678901234567890 }`))
-            .toThrow("Unboxing id, value: null: Null not allowed");
+            .toThrow("Unboxing id, value: null: Null not allowed")
         expect(() => simpleRecordS.unbox(`{ "id": 12345678901234567890 }`))
-            .toThrow("Unboxing name, value: undefined: Field missing");
-        expect(simpleRecordS.unbox(`null`)).toBeNull();
-    });
+            .toThrow("Unboxing name, value: undefined: Field missing")
+        expect(simpleRecordS.unbox(`null`)).toBeNull()
+    })
 
     test("Giving default values or throwing exceptions based on source data", () => {
         const validatedRecordS = objectS({
@@ -84,7 +84,7 @@ describe("Testing type unboxing", () => {
             intFromFloat: intS,
             intCustomRound: intS.byDefault((source: any) => Math.floor(source), always),
             intFromFloatString: intS
-        });
+        })
         expect(primitivesRecordS.unbox({
             intFromInt: 1,
             intFromString: "2",
@@ -99,21 +99,21 @@ describe("Testing type unboxing", () => {
             intFromFloat: 3,
             intCustomRound: 5,
             intFromFloatString: 6
-        });
-    });
+        })
+    })
 
     test("Integer conversion errors", () => {
         const errorRecordS = objectS({
             hugeInt: intS.optional,
             badInt: intS.optional,
             nanAllowed: intS.byDefault(NaN, (source: any) => isNaN(Number(source))).optional
-        });
+        })
         expect(() => errorRecordS.unbox({ hugeInt: 12345678901234567890n }))
             .toThrow(expect.objectContaining({ message: expect.stringContaining("Integer out of bounds") }))
         expect(() => errorRecordS.unbox({ hugeInt: "wrong" })).toThrow("Unboxing hugeInt, value: \"wrong\": Invalid number")
         expect(() => intS.unbox("wrong")).toThrow(InvalidNumberError)
         expect(errorRecordS.unbox({ nanAllowed: "too bad" })?.nanAllowed).toBeNaN()
-    });
+    })
 
     test("Unboxing floats", () => {
         const primitivesRecordS = objectS({
@@ -121,7 +121,7 @@ describe("Testing type unboxing", () => {
             floatFromString: floatS,
             floatFromBigint: floatS,
             floatFromFloat: floatS,
-        });
+        })
         expect(primitivesRecordS.unbox({
             floatFromInt: 1,
             floatFromString: "2.1",
@@ -132,35 +132,35 @@ describe("Testing type unboxing", () => {
             floatFromString: 2.1,
             floatFromBigint: 3.0,
             floatFromFloat: 3.9
-        });
+        })
     })
 
     test("Float conversion errors", () => {
         const errorRecordS = objectS({
             badFloat: floatS
-        });
+        })
         expect(() => errorRecordS.unbox({ badFloat: "wrong" }))
             .toThrow(expect.objectContaining({ message: expect.stringContaining("Invalid number") }))
-    });
+    })
 
     test("Unboxing dates", () => {
         const primitivesRecordS = objectS({
             dateFromString: dateS,
             dateFromDate: dateS
-        });
+        })
         expect(primitivesRecordS.unbox({
             dateFromString: "2024-01-02 00:00Z",
             dateFromDate: new Date("2024-01-03 00:00Z")
         })).toEqual({
             dateFromString: new Date("2024-01-02 00:00Z"),
             dateFromDate: new Date("2024-01-03 00:00Z")
-        });
-        expect(dateS.unbox("")!.getTime()).toBeGreaterThan(new Date().getTime() - 10000);
-    });
+        })
+        expect(dateS.unbox("")!.getTime()).toBeGreaterThan(new Date().getTime() - 10000)
+    })
 
     test("Date conversion errors", () => {
-        expect(() => dateS.unbox("wrong")).toThrow(InvalidDateError);
-    });
+        expect(() => dateS.unbox("wrong")).toThrow(InvalidDateError)
+    })
 
     test("Unboxing booleans", () => {
         const primitivesRecordS = objectS({
@@ -173,7 +173,7 @@ describe("Testing type unboxing", () => {
             boolFromOneString: boolS,
             boolFromZeroString: boolS,
             boolFromNull: boolS
-        });
+        })
         expect(primitivesRecordS.unbox({
             boolFromTrue: true,
             boolFromFalse: false,
@@ -194,13 +194,13 @@ describe("Testing type unboxing", () => {
             boolFromOneString: true,
             boolFromZeroString: false,
             boolFromNull: null
-        });
-    });
+        })
+    })
 
     test("Boolean conversion errors", () => {
-        expect(() => boolS.unbox("wrong")).toThrow(InvalidBooleanError);
-        expect(() => boolS.unbox(42)).toThrow(InvalidBooleanError);
-    });
+        expect(() => boolS.unbox("wrong")).toThrow(InvalidBooleanError)
+        expect(() => boolS.unbox(42)).toThrow(InvalidBooleanError)
+    })
 
     test("Array of primitives unboxing", () => {
         const arrayOfStrings = arrayS(stringS).notNull
@@ -304,9 +304,9 @@ describe("Testing type unboxing", () => {
             dateField: dateS.byDefault(new Date("1984-01-01")),
             boolField: boolS,
             floatField: floatS
-        });
-        expect(simpleRecordS.metadata.dataType).toEqual("object");
-        const fieldsMetadata = simpleRecordS.metadata;
+        })
+        expect(simpleRecordS.metadata.dataType).toEqual("object")
+        const fieldsMetadata = simpleRecordS.metadata
         const names = fieldsMetadata.fields.map((fieldName, _) => fieldName)
         expect(names).toEqual(["id", "name", "opt", "dateField", "boolField", "floatField"])
     })
@@ -319,9 +319,9 @@ describe("Testing type unboxing", () => {
             dateField: dateS.byDefault(new Date("1984-01-01")),
             boolField: boolS,
             floatField: floatS
-        });
-        expect(simpleRecordS.metadata.dataType).toEqual("object");
-        const fieldsMetadata = simpleRecordS.metadata;
+        })
+        expect(simpleRecordS.metadata.dataType).toEqual("object")
+        const fieldsMetadata = simpleRecordS.metadata
         const names = fieldsMetadata.fields
             .filter((fieldName, _) => fieldName === "id")
             .map(({ key, schema }) => `${key}:${schema.metadata.dataType}`)
@@ -331,9 +331,9 @@ describe("Testing type unboxing", () => {
     test("Should throw informative error if there is an exception unboxing an object field", () => {
         const errObjS = objectS({
             notNullableField: intS.notNull
-        });
-        expect(() => errObjS.unbox(`{ "notNullableField": null }`)).toThrow("Unboxing notNullableField, value: null: Null not allowed");
-    });
+        })
+        expect(() => errObjS.unbox(`{ "notNullableField": null }`)).toThrow("Unboxing notNullableField, value: null: Null not allowed")
+    })
 
     test("Should throw informative error if there is an exception unboxing an array field", () => {
         const errObjS = arrayS(intS.notNull)
@@ -348,44 +348,47 @@ describe("Testing type unboxing", () => {
     test("Implement and call API", async () => {
         const cruelApi = {
             world: { args: [stringS.notNull], retVal: stringS.notNull }
-        };
+        }
         const simpleApiS = apiS({
             meow: { args: [], retVal: stringS.notNull },
             noMeow: { args: [] },
             helloWorld: { args: [stringS.notNull, bigintS.notNull], retVal: stringS.notNull },
             cruel: cruelApi
-        });
+        })
 
         let isMeow = true
         const implementation = {
             meow: async () => Promise.resolve("Miaou!"),
-            noMeow: async () => { isMeow = false; Promise.resolve(); },
+            noMeow: async () => {
+                isMeow = false
+                Promise.resolve()
+            },
             helloWorld: async (name: string, id: bigint) => Promise.resolve(`Hello ${name}, your id is ${id + 1n}`),
             cruel: {
                 world: async (val: string) => Promise.resolve(`${val}, this world is cruel`)
             }
         }
-        const caller: ApiImplementation<typeof simpleApiS> = implementation;
+        const caller: ApiImplementation<typeof simpleApiS> = implementation
 
-        expect(await caller.meow()).toEqual("Miaou!");
-        await caller.noMeow();
-        expect(isMeow).toBeFalsy();
+        expect(await caller.meow()).toEqual("Miaou!")
+        await caller.noMeow()
+        expect(isMeow).toBeFalsy()
         expect(await caller.helloWorld("test", 12345678901234567890n))
-            .toEqual("Hello test, your id is 12345678901234567891");
-        expect(await caller.cruel.world("Oyvey")).toEqual("Oyvey, this world is cruel");
+            .toEqual("Hello test, your id is 12345678901234567891")
+        expect(await caller.cruel.world("Oyvey")).toEqual("Oyvey, this world is cruel")
 
-        expect(simpleApiS.metadata.dataType).toEqual("api");
-        const helloWorld = simpleApiS.metadata.implementation.helloWorld;
-        expect(helloWorld.metadata.dataType).toEqual("function");
-        expect(helloWorld.args[0].metadata.dataType).toEqual("string");
-        expect(helloWorld.args[1].metadata.dataType).toEqual("bigint");
-        expect(helloWorld.args[1].unbox("42")).toEqual(42n);
-        expect(helloWorld.retVal.metadata.dataType).toEqual("string");
-        expect(simpleApiS.metadata.implementation.cruel.metadata.dataType).toEqual("api");
-        const subApiData = simpleApiS.metadata.implementation.cruel;
-        expect(subApiData.world.metadata.dataType).toEqual("function");
-        expect(simpleApiS.metadata.implementation.noMeow.metadata.dataType).toEqual("function");
-        expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string");
+        expect(simpleApiS.metadata.dataType).toEqual("api")
+        const helloWorld = simpleApiS.metadata.implementation.helloWorld
+        expect(helloWorld.metadata.dataType).toEqual("function")
+        expect(helloWorld.args[0].metadata.dataType).toEqual("string")
+        expect(helloWorld.args[1].metadata.dataType).toEqual("bigint")
+        expect(helloWorld.args[1].unbox("42")).toEqual(42n)
+        expect(helloWorld.retVal.metadata.dataType).toEqual("string")
+        expect(simpleApiS.metadata.implementation.cruel.metadata.dataType).toEqual("api")
+        const subApiData = simpleApiS.metadata.implementation.cruel
+        expect(subApiData.world.metadata.dataType).toEqual("function")
+        expect(simpleApiS.metadata.implementation.noMeow.metadata.dataType).toEqual("function")
+        expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string")
     })
 
     test("Implement and call API: using implementation instead of deprecated members", async () => {
@@ -399,36 +402,39 @@ describe("Testing type unboxing", () => {
             cruel: cruelApi
         })
 
-        let isMeow = true;
+        let isMeow = true
         const implementation = {
             meow: async () => Promise.resolve("Miaou!"),
-            noMeow: async () => { isMeow = false; Promise.resolve(); },
+            noMeow: async () => {
+                isMeow = false
+                Promise.resolve()
+            },
             helloWorld: async (name: string, id: bigint) => Promise.resolve(`Hello ${name}, your id is ${id + 1n}`),
             cruel: {
                 world: async (val: string) => Promise.resolve(`${val}, this world is cruel`)
             }
         }
-        const caller: ApiImplementation<typeof simpleApiS> = implementation;
+        const caller: ApiImplementation<typeof simpleApiS> = implementation
 
-        expect(await caller.meow()).toEqual("Miaou!");
-        await caller.noMeow();
-        expect(isMeow).toBeFalsy();
+        expect(await caller.meow()).toEqual("Miaou!")
+        await caller.noMeow()
+        expect(isMeow).toBeFalsy()
         expect(await caller.helloWorld("test", 12345678901234567890n))
-            .toEqual("Hello test, your id is 12345678901234567891");
-        expect(await caller.cruel.world("Oyvey")).toEqual("Oyvey, this world is cruel");
+            .toEqual("Hello test, your id is 12345678901234567891")
+        expect(await caller.cruel.world("Oyvey")).toEqual("Oyvey, this world is cruel")
 
-        expect(simpleApiS.metadata.dataType).toEqual("api");
+        expect(simpleApiS.metadata.dataType).toEqual("api")
         const helloWorld = simpleApiS.metadata.implementation.helloWorld.metadata
-        expect(helloWorld.dataType).toEqual("function");
-        expect(helloWorld.args[0].metadata.dataType).toEqual("string");
-        expect(helloWorld.args[1].metadata.dataType).toEqual("bigint");
-        expect(helloWorld.args[1].unbox("42")).toEqual(42n);
-        expect(helloWorld.retVal.metadata.dataType).toEqual("string");
+        expect(helloWorld.dataType).toEqual("function")
+        expect(helloWorld.args[0].metadata.dataType).toEqual("string")
+        expect(helloWorld.args[1].metadata.dataType).toEqual("bigint")
+        expect(helloWorld.args[1].unbox("42")).toEqual(42n)
+        expect(helloWorld.retVal.metadata.dataType).toEqual("string")
         expect(simpleApiS.metadata.implementation.cruel.metadata.dataType).toEqual("api")
         const subApiData = simpleApiS.metadata.implementation.cruel.metadata
-        expect(subApiData.implementation.world.metadata.dataType).toEqual("function");
-        expect(simpleApiS.metadata.implementation.noMeow.metadata.dataType).toEqual("function");
-        expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string");
+        expect(subApiData.implementation.world.metadata.dataType).toEqual("function")
+        expect(simpleApiS.metadata.implementation.noMeow.metadata.dataType).toEqual("function")
+        expect(simpleApiS.metadata.implementation.meow.retVal.metadata.dataType).toEqual("string")
     })
 
     test("API metadata should contain names and path information", () => {
@@ -635,53 +641,53 @@ describe("Testing type unboxing", () => {
 
     test("Should clean up dead object schema cache entries", () => {
         // GIVEN a cached object schema and a WeakRef pretending to be dead
-        const sourceSchema = { id: bigintS.notNull };
-        const s1 = objectS(sourceSchema);
-        const originalDeref = WeakRef.prototype.deref;
-        WeakRef.prototype.deref = () => undefined;
+        const sourceSchema = { id: bigintS.notNull }
+        const s1 = objectS(sourceSchema)
+        const originalDeref = WeakRef.prototype.deref
+        WeakRef.prototype.deref = () => undefined
 
         try {
             // WHEN creating the same schema again
-            const s2 = objectS(sourceSchema);
+            const s2 = objectS(sourceSchema)
 
             // THEN the dead entry is cleaned up and a new schema is created
-            expect(s2).not.toBe(s1);
+            expect(s2).not.toBe(s1)
         } finally {
-            WeakRef.prototype.deref = originalDeref;
+            WeakRef.prototype.deref = originalDeref
         }
     })
 
     test("Should clean up dead array schema cache entries", () => {
         // GIVEN a cached array schema and a WeakRef pretending to be dead
-        const s1 = arrayS(stringS.notNull);
-        const originalDeref = WeakRef.prototype.deref;
-        WeakRef.prototype.deref = () => undefined;
+        const s1 = arrayS(stringS.notNull)
+        const originalDeref = WeakRef.prototype.deref
+        WeakRef.prototype.deref = () => undefined
 
         try {
             // WHEN creating the same schema again
-            const s2 = arrayS(stringS.notNull);
+            const s2 = arrayS(stringS.notNull)
 
             // THEN the dead entry is cleaned up and a new schema is created
-            expect(s2).not.toBe(s1);
+            expect(s2).not.toBe(s1)
         } finally {
-            WeakRef.prototype.deref = originalDeref;
+            WeakRef.prototype.deref = originalDeref
         }
     })
 
     test("Should clean up dead dictionary schema cache entries", () => {
         // GIVEN a cached dictionary schema and a WeakRef pretending to be dead
-        const s1 = dictionaryS(stringS.notNull);
-        const originalDeref = WeakRef.prototype.deref;
-        WeakRef.prototype.deref = () => undefined;
+        const s1 = dictionaryS(stringS.notNull)
+        const originalDeref = WeakRef.prototype.deref
+        WeakRef.prototype.deref = () => undefined
 
         try {
             // WHEN creating the same schema again
-            const s2 = dictionaryS(stringS.notNull);
+            const s2 = dictionaryS(stringS.notNull)
 
             // THEN the dead entry is cleaned up and a new schema is created
-            expect(s2).not.toBe(s1);
+            expect(s2).not.toBe(s1)
         } finally {
-            WeakRef.prototype.deref = originalDeref;
+            WeakRef.prototype.deref = originalDeref
         }
     })
 

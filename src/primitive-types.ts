@@ -1,5 +1,5 @@
-import { IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError } from "./errors";
-import { Schema, createPrimitiveSchema } from "./schemas";
+import { IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError } from "./errors"
+import { Schema, createPrimitiveSchema } from "./schemas"
 
 const integrifyString = (s: string) => s.replace(/[\.|,][0-9]*$/, "")
 
@@ -34,7 +34,7 @@ export type LiteralS<T extends keyof any> = Schema<T, T>
 export const literalS = <T extends keyof any>(...values: T[]): LiteralS<T> =>
     createPrimitiveSchema<T, T>(`literal(${values.map(String).join("|")})`, source => {
         if (!values.includes(source)) throw new Error(`Invalid value for literal type: ${String(source)}, must be one of ${values.map(String).join("|")}`)
-        return source;
+        return source
     })
 
 /**
@@ -49,11 +49,11 @@ export type IntS = Schema<number, bigint | number | string>
  * If the converted number is out of the simple number's bounds, throw an error
  */
 export const intS = createPrimitiveSchema<number, bigint | number | string>("int", source => {
-    const converted = Number(source);
-    if (Number.isNaN(converted)) throw new InvalidNumberError();
-    const returned = Number.isInteger(converted) ? converted : Math.floor(converted);
-    if (!Number.isSafeInteger(returned)) throw new IntOutOfBoundsError();
-    return returned;
+    const converted = Number(source)
+    if (Number.isNaN(converted)) throw new InvalidNumberError()
+    const returned = Number.isInteger(converted) ? converted : Math.floor(converted)
+    if (!Number.isSafeInteger(returned)) throw new IntOutOfBoundsError()
+    return returned
 })
 
 /**
@@ -66,9 +66,9 @@ export type FloatS = Schema<number, bigint | number | string>
  * If the source of unboxing cannot be converted into a number, throws an error.
  */
 export const floatS = createPrimitiveSchema<number, bigint | number | string>("float", source => {
-    const converted = Number(source);
-    if (Number.isNaN(converted)) throw new InvalidNumberError();
-    return converted;
+    const converted = Number(source)
+    if (Number.isNaN(converted)) throw new InvalidNumberError()
+    return converted
 })
 
 /**
@@ -82,11 +82,11 @@ export type DateS = Schema<Date, Date | string>
  */
 export const dateS = createPrimitiveSchema<Date, Date | string>("date", source => {
     if (typeof source === "string") {
-        const timestamp = source === "" ? Date.now() : Date.parse(source);
-        if (Number.isNaN(timestamp)) throw new InvalidDateError();
-        return new Date(timestamp);
+        const timestamp = source === "" ? Date.now() : Date.parse(source)
+        if (Number.isNaN(timestamp)) throw new InvalidDateError()
+        return new Date(timestamp)
     }
-    return source;
+    return source
 })
 
 /**
@@ -101,14 +101,14 @@ export type BoolS = Schema<boolean, boolean | string | number>
  */
 export const boolS = createPrimitiveSchema<boolean, boolean | string | number>("bool", source => {
     if (typeof source === "string") {
-        if (source === "true" || source === "1") return true;
-        if (source === "false" || source === "0") return false;
-        throw new InvalidBooleanError();
+        if (source === "true" || source === "1") return true
+        if (source === "false" || source === "0") return false
+        throw new InvalidBooleanError()
     }
     if (typeof source === "number") {
-        if (source === 1) return true;
-        if (source === 0) return false;
-        throw new InvalidBooleanError();
+        if (source === 1) return true
+        if (source === 0) return false
+        throw new InvalidBooleanError()
     }
-    return source;
+    return source
 })
