@@ -1050,6 +1050,36 @@ describe("Testing type unboxing", () => {
         expect(nullableOptional).toBe(optionalSchema)
     })
 
+    test("Should allow undefined and reject null on optional.notNull", () => {
+        // GIVEN an optional.notNull schema
+        const notNullOptional = stringS.optional.notNull
+
+        // THEN undefined is allowed
+        expect(notNullOptional.unbox(undefined)).toBeUndefined()
+
+        // AND null is rejected at compile time and runtime
+        // @ts-expect-error null is not allowed for optional.notNull
+        expect(() => notNullOptional.unbox(null)).toThrow("Null not allowed")
+
+        // AND it stays optional while becoming non-null
+        expect((notNullOptional as any).notNullFlag).toBe(true)
+        expect((notNullOptional as any).optionalFlag).toBe(true)
+        expect(getSchemaSignature(notNullOptional)).not.toBe(getSchemaSignature(stringS.notNull))
+        expect(getSchemaSignature(notNullOptional)).toContain(".NN.OPT")
+    })
+
+    test("Should treat optional.notNull object fields as optional but non-nullable", () => {
+        // GIVEN an object schema with an optional.notNull field
+        const schema = objectS({ value: intS.optional.notNull })
+
+        // THEN the field may be absent or undefined
+        expect(schema.unbox({})).toEqual({})
+        expect(schema.unbox({ value: undefined })).toEqual({})
+
+        // AND null is rejected
+        expect(() => schema.unbox({ value: null as any })).toThrow("Null not allowed")
+    })
+
     test("Should be a no-op when calling .nullable on a non-notNull schema", () => {
         // GIVEN a nullable schema
         const nullableSchema = stringS
@@ -1088,5 +1118,19 @@ describe("Testing type unboxing", () => {
         } finally {
             WeakRef.prototype.deref = originalDeref
         }
+    })
+
+    test("Should default missing schema flags to false in byDefault", () => {
+        // GIVEN a schema with runtime flags removed
+        const schema: any = objectS({})
+        delete schema.notNullFlag
+        delete schema.optionalFlag
+
+        // WHEN applying a default rule
+        const withDefault = schema.byDefault(0)
+
+        // THEN the default schema exposes false flags
+        expect(withDefault.notNullFlag).toBe(false)
+        expect(withDefault.optionalFlag).toBe(false)
     })
 })
