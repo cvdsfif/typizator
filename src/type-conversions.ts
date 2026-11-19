@@ -1,8 +1,8 @@
-import { Optional, RecursiveS, Schema, SchemaDefinition } from "./schemas";
+import { Optional, RecursiveS, Schema, SchemaDefinition } from "./schemas"
 
 /**
  * Transform a schema to its source type making the `.optional` fields optional
- * 
+ *
  * @example
  * Given this:
  * ```ts
@@ -28,7 +28,7 @@ export type InferSourceFromSchema<T> =
     B extends { allowNull: false, optional: false } ? Source :
     B extends Optional ? Source | undefined | null :
     Source | null :
-    never;
+    never
 
 
 /**
@@ -41,11 +41,11 @@ export type SchemaSource<T extends SchemaDefinition> =
     } & {
         [K in keyof T as T[K] extends RecursiveS ? K : T[K] extends Schema<any, any, Optional, any> ? K : never]?:
         T[K] extends RecursiveS ? SchemaSource<T> : InferSourceFromSchema<T[K]>
-    } | string;
+    } | string
 
 /**
  * Transform a schema to its target type making the `.optional` fields optional
- * 
+ *
  * @example
  * Given this:
  * ```ts
@@ -75,7 +75,7 @@ export type InferTargetFromSchema<T> =
 
 /**
  * Transforms a string-to-object schema into its target dictionary type
- * 
+ *
  * * @example
  * Given this:
  * ```ts
@@ -98,7 +98,7 @@ export type InferTargetForDictionary<V extends Schema> = {
 
 /**
  * Transforms a string-to-object schema into its source dictionary type
- * 
+ *
  * * @example
  * Given this:
  * ```ts

@@ -109,13 +109,14 @@ const extractMetadata = <D extends ApiDefinition>(
     props: { hidden?: boolean }
 ): ApiMetadata<D> => {
     const impl = {} as MetadataMembersImplementation<D>
+    const target = impl as any
     Object.keys(definition).forEach(key => {
-        const field = definition[key];
+        const field = definition[key]
         if (typeof field.args === "object") {
             Object.keys(field).forEach(fld => {
-                if (!["args", "retVal", "hidden"].includes(fld)) throw new Error(`Invalid field ${fld} in ${metadataName}/${key}`);
-            });
-            (impl as any)[key] = {
+                if (!["args", "retVal", "hidden"].includes(fld)) throw new Error(`Invalid field ${fld} in ${metadataName}/${key}`)
+            })
+            target[key] = {
                 ...definition[key],
                 name: key,
                 path: `${parentPath}${metadataName}/${key}`,
@@ -129,8 +130,8 @@ const extractMetadata = <D extends ApiDefinition>(
                 }
             }
         } else {
-            const child = extractMetadata(field as ApiDefinition, key, `${parentPath}${metadataName}/`, props);
-            (impl as any)[key] = {
+            const child = extractMetadata(field as ApiDefinition, key, `${parentPath}${metadataName}/`, props)
+            target[key] = {
                 ...child.implementation,
                 name: key,
                 path: `${parentPath}${metadataName}/${key}`,
@@ -158,7 +159,7 @@ export const apiS = <
     P extends { hidden?: boolean }
 >(definition: T, props: P = {} as P): ApiSchema<T, P> => ({
     metadata: extractMetadata(definition, "", "", props)
-});
+})
 
 /**
  * Extracts argument types from a list of schemas.
