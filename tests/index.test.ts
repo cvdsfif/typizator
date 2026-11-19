@@ -1060,6 +1060,24 @@ describe("Testing type unboxing", () => {
         // AND null is rejected at compile time and runtime
         // @ts-expect-error null is not allowed for optional.notNull
         expect(() => notNullOptional.unbox(null)).toThrow("Null not allowed")
+
+        // AND it stays optional while becoming non-null
+        expect((notNullOptional as any).notNullFlag).toBe(true)
+        expect((notNullOptional as any).optionalFlag).toBe(true)
+        expect(getSchemaSignature(notNullOptional)).not.toBe(getSchemaSignature(stringS.notNull))
+        expect(getSchemaSignature(notNullOptional)).toContain(".NN.OPT")
+    })
+
+    test("Should treat optional.notNull object fields as optional but non-nullable", () => {
+        // GIVEN an object schema with an optional.notNull field
+        const schema = objectS({ value: intS.optional.notNull })
+
+        // THEN the field may be absent or undefined
+        expect(schema.unbox({})).toEqual({})
+        expect(schema.unbox({ value: undefined })).toEqual({})
+
+        // AND null is rejected
+        expect(() => schema.unbox({ value: null as any })).toThrow("Null not allowed")
     })
 
     test("Should be a no-op when calling .nullable on a non-notNull schema", () => {

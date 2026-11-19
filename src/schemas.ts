@@ -365,9 +365,10 @@ const getNotNull = (schema: any): any => {
     let cached = notNullCache.get(schema);
     if (!cached) {
         cached = Object.create(schemaPrototype);
-        cached.metadata = { ...schema.metadata, notNull: true, optional: false };
+        const keepOptional = schema.optionalFlag === true;
+        cached.metadata = { ...schema.metadata, notNull: true, optional: keepOptional };
         cached.notNullFlag = true;
-        cached.optionalFlag = false;
+        cached.optionalFlag = keepOptional;
         cached.unbox = (source: any, props?: UnboxingProperties): any => {
             if (source === null || (props?.keepNullString !== true && source === "null")) throw new NullNotAllowedError();
             return schema.unbox(source, props);
@@ -472,9 +473,7 @@ const getTypeSchemaSignature = (schema: Schema | SchemaDefinition): string => {
  */
 export const getSchemaSignature = (schema: Schema | SchemaDefinition): string => {
     if (!isSchema(schema)) return getTypeSchemaSignature(schema);
-    return `${getTypeSchemaSignature(schema)}${schema.metadata.notNull ?
-        ".NN" : schema.metadata.optional ?
-            ".OPT" : ""}${schema.metadata.hasDefaultRule ? ".DEF" : ""}`;
+    return `${getTypeSchemaSignature(schema)}${schema.metadata.notNull ? ".NN" : ""}${schema.metadata.optional ? ".OPT" : ""}${schema.metadata.hasDefaultRule ? ".DEF" : ""}`;
 }
 
 export type RecursiveS = { isRecursive: true } & Schema<any, any, { allowNull: true, optional: false }, TypedMetadata>
