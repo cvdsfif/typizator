@@ -1,11 +1,31 @@
 import { execSync } from "node:child_process"
-import { readFileSync } from "node:fs"
+import { readdirSync, readFileSync } from "node:fs"
+import { join } from "node:path"
 
 const SEMICOLON = String.fromCharCode(59)
 const checkedExtensions = new Set([".js", ".ts", ".mjs", ".cjs"])
-const trackedFiles = execSync("git ls-files", { encoding: "utf8" })
-    .split(/\r?\n/)
-    .filter(Boolean)
+
+function listFiles() {
+    try {
+        return execSync("git ls-files", { encoding: "utf8" }).split(/\r?\n/).filter(Boolean)
+    } catch {
+        const files = []
+        const walk = directory => {
+            for (const entry of readdirSync(directory, { withFileTypes: true })) {
+                const path = join(directory, entry.name)
+                if (entry.isDirectory()) {
+                    if (entry.name !== "node_modules" && entry.name !== ".git" && entry.name !== "dist") walk(path)
+                } else {
+                    files.push(path)
+                }
+            }
+        }
+        walk(".")
+        return files
+    }
+}
+
+const trackedFiles = listFiles()
     .filter(file => {
         const dot = file.lastIndexOf(".")
         const extension = dot === -1 ? "" : file.slice(dot)
@@ -41,6 +61,28 @@ function isIdentifierStart(char) {
 
 function isIdentifierPart(char) {
     return isIdentifierStart(char) || (char >= "0" && char <= "9")
+}
+
+function skipSpaceAndComments(text, cursor) {
+    while (cursor < text.length) {
+        if (/\s/.test(text[cursor])) {
+            cursor += 1
+            continue
+        }
+        if (text[cursor] === "/" && text[cursor + 1] === "/") {
+            cursor += 2
+            while (cursor < text.length && text[cursor] !== "\n") cursor += 1
+            continue
+        }
+        if (text[cursor] === "/" && text[cursor + 1] === "*") {
+            cursor += 2
+            while (cursor < text.length && !(text[cursor] === "*" && text[cursor + 1] === "/")) cursor += 1
+            cursor = Math.min(cursor + 2, text.length)
+            continue
+        }
+        return cursor
+    }
+    return cursor
 }
 
 function checkText(text, name, lineOffset) {
@@ -115,7 +157,7 @@ function checkText(text, name, lineOffset) {
         }
 
         if (index === pendingForParen) {
-            forStack.push({ depth: 1 })
+            forStack.push({ opens: ["("] })
             pendingForParen = -1
             index += 1
             continue
@@ -128,8 +170,7 @@ function checkText(text, name, lineOffset) {
             if (word === "for") {
                 const before = index === 0 ? "" : text[index - 1]
                 if (before !== ".") {
-                    let cursor = end
-                    while (cursor < length && /\s/.test(text[cursor])) cursor += 1
+                    const cursor = skipSpaceAndComments(text, end)
                     if (text[cursor] === "(") pendingForParen = cursor
                 }
             }
@@ -139,16 +180,16 @@ function checkText(text, name, lineOffset) {
 
         if (forStack.length > 0) {
             const top = forStack[forStack.length - 1]
-            if (char === "(") top.depth += 1
-            if (char === ")") {
-                top.depth -= 1
-                if (top.depth === 0) forStack.pop()
+            if (char === "(" || char === "[" || char === "{") top.opens.push(char)
+            if (char === ")" || char === "]" || char === "}") {
+                top.opens.pop()
+                if (top.opens.length === 0) forStack.pop()
             }
         }
 
         if (char === SEMICOLON) {
             const top = forStack.length > 0 ? forStack[forStack.length - 1] : null
-            if (!top || top.depth !== 1) {
+            if (!top || top.opens.length !== 1) {
                 const localLine = lineNumberAt(starts, index)
                 const lineStart = starts[localLine - 1]
                 const column = index - lineStart + 1
@@ -160,30 +201,49 @@ function checkText(text, name, lineOffset) {
     }
 }
 
+function fenceMarker(line) {
+    const trimmed = line.trimStart()
+    const char = trimmed[0]
+    if (char !== "`" && char !== "~") return null
+    let length = 0
+    while (trimmed[length] === char) length += 1
+    if (length < 3) return null
+    return { char, length }
+}
+
+function isFenceClose(line, marker) {
+    const trimmed = line.trimStart()
+    let length = 0
+    while (trimmed[length] === marker.char) length += 1
+    return length >= marker.length && trimmed.slice(length).trim() === ""
+}
+
 function checkMarkdown(text, name) {
     const lines = text.split(/\r?\n/)
-    let inFence = false
+    let openFence = null
     let fenceStart = 0
     let buffer = []
 
     lines.forEach((line, index) => {
-        const trimmed = line.trimStart()
-        if (trimmed.startsWith("```")) {
-            if (inFence) {
-                checkText(buffer.join("\n"), name, fenceStart + 1)
-                buffer = []
-                inFence = false
-            } else {
-                inFence = true
+        const marker = fenceMarker(line)
+        if (openFence === null) {
+            if (marker !== null) {
+                openFence = marker
                 fenceStart = index
                 buffer = []
             }
             return
         }
-        if (inFence) buffer.push(line)
+        if (isFenceClose(line, openFence)) {
+            checkText(buffer.join("\n"), name, fenceStart + 1)
+            openFence = null
+            buffer = []
+            return
+        }
+        buffer.push(line)
     })
 
-    if (inFence) checkText(buffer.join("\n"), name, fenceStart + 1)
+    if (openFence !== null) checkText(buffer.join("\n"), name, fenceStart + 1)
 }
 
 for (const file of trackedFiles) {
