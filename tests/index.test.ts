@@ -1119,4 +1119,18 @@ describe("Testing type unboxing", () => {
             WeakRef.prototype.deref = originalDeref
         }
     })
+
+    test("Should default missing schema flags to false in byDefault", () => {
+        // GIVEN a schema with runtime flags removed
+        const schema: any = objectS({})
+        delete schema.notNullFlag
+        delete schema.optionalFlag
+
+        // WHEN applying a default rule
+        const withDefault = schema.byDefault(0)
+
+        // THEN the default schema exposes false flags
+        expect(withDefault.notNullFlag).toBe(false)
+        expect(withDefault.optionalFlag).toBe(false)
+    })
 })
