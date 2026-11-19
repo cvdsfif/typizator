@@ -202,7 +202,9 @@ function checkText(text, name, lineOffset) {
 }
 
 function fenceMarker(line) {
-    const trimmed = line.trimStart()
+    let trimmed = line.trimStart()
+    const bullet = trimmed.match(/^[-*+]\s+|^\d+[.)]\s+/)
+    if (bullet) trimmed = trimmed.slice(bullet[0].length).trimStart()
     const char = trimmed[0]
     if (char !== "`" && char !== "~") return null
     let length = 0
