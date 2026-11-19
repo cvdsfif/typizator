@@ -1,12 +1,12 @@
 import { IntOutOfBoundsError, InvalidBooleanError, InvalidDateError, InvalidNumberError } from "./errors";
-import { Schema, createPrimitiveSchema } from "./schemas";
+import { ExtendedSchema, createPrimitiveSchema } from "./schemas";
 
 const integrifyString = (s: string) => s.replace(/[\.|,][0-9]*$/, "")
 
 /**
  * Type for the bigint schema.
  */
-export type BigintS = Schema<bigint, bigint | number | string>
+export type BigintS = ExtendedSchema<bigint, bigint | number | string>
 /**
  * Primitive type schema representing a bigint
  */
@@ -19,7 +19,7 @@ export const bigintS = createPrimitiveSchema<bigint, bigint | number | string>("
 /**
  * Type for the string schema.
  */
-export type StringS = Schema<string, string | bigint | number>
+export type StringS = ExtendedSchema<string, string | bigint | number>
 /**
  * Primitive type schema representing a string
  */
@@ -27,7 +27,7 @@ export const stringS = createPrimitiveSchema<string, string | bigint | number>("
     typeof source === "string" ? source : `${source}`
 )
 
-export type LiteralS<T extends keyof any> = Schema<T, T>
+export type LiteralS<T extends keyof any> = ExtendedSchema<T, T>
 /**
  * Primitive type schema representing a literal type
  */
@@ -40,7 +40,7 @@ export const literalS = <T extends keyof any>(...values: T[]): LiteralS<T> =>
 /**
  * Type for the int schema.
  */
-export type IntS = Schema<number, bigint | number | string>
+export type IntS = ExtendedSchema<number, bigint | number | string>
 /**
  * Primitive type schema representing an integer number
  *
@@ -59,7 +59,7 @@ export const intS = createPrimitiveSchema<number, bigint | number | string>("int
 /**
  * Type for the float schema.
  */
-export type FloatS = Schema<number, bigint | number | string>
+export type FloatS = ExtendedSchema<number, bigint | number | string>
 /**
  * Primitive type schema representing a floating point number
  *
@@ -74,7 +74,7 @@ export const floatS = createPrimitiveSchema<number, bigint | number | string>("f
 /**
  * Type for the date schema.
  */
-export type DateS = Schema<Date, Date | string>
+export type DateS = ExtendedSchema<Date, Date | string>
 /**
  * Primitive type representing a Javascript/typescript date
  *
@@ -92,7 +92,7 @@ export const dateS = createPrimitiveSchema<Date, Date | string>("date", source =
 /**
  * Type for the boolean schema.
  */
-export type BoolS = Schema<boolean, boolean | string | number>
+export type BoolS = ExtendedSchema<boolean, boolean | string | number>
 /**
  * Primitive type representing a boolean
  *

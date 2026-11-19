@@ -1,4 +1,4 @@
-import { Optional, RecursiveS, Schema, SchemaDefinition } from "./schemas";
+import { NotNullFacade, OptionalFacade, RecursiveS, Schema, SchemaDefinition } from "./schemas";
 
 /**
  * Transform a schema to its source type making the `.optional` fields optional
@@ -24,10 +24,9 @@ import { Optional, RecursiveS, Schema, SchemaDefinition } from "./schemas";
  * ```
  */
 export type InferSourceFromSchema<T> =
-    T extends Schema<any, infer Source, infer B, any> ?
-    B extends { allowNull: false, optional: false } ? Source :
-    B extends Optional ? Source | undefined | null :
-    Source | null :
+    T extends NotNullFacade<any, infer Source, any, any> ? Source :
+    T extends OptionalFacade<any, infer Source, any, any> ? Source | undefined | null :
+    T extends Schema<any, infer Source> ? Source | null :
     never;
 
 
@@ -36,10 +35,10 @@ export type InferSourceFromSchema<T> =
  */
 export type SchemaSource<T extends SchemaDefinition> =
     {
-        [K in keyof T as T[K] extends RecursiveS ? never : T[K] extends Schema<any, any, Optional, any> ? never : K]:
+        [K in keyof T as T[K] extends RecursiveS ? never : T[K] extends OptionalFacade<any, any, any, any> ? never : K]:
         InferSourceFromSchema<T[K]>
     } & {
-        [K in keyof T as T[K] extends RecursiveS ? K : T[K] extends Schema<any, any, Optional, any> ? K : never]?:
+        [K in keyof T as T[K] extends RecursiveS ? K : T[K] extends OptionalFacade<any, any, any, any> ? K : never]?:
         T[K] extends RecursiveS ? SchemaSource<T> : InferSourceFromSchema<T[K]>
     } | string;
 
@@ -67,10 +66,9 @@ export type SchemaSource<T extends SchemaDefinition> =
  * ```
  */
 export type InferTargetFromSchema<T> =
-    T extends Schema<infer Target, any, infer B, any> ?
-    B extends { allowNull: false, optional: false } ? Target :
-    B extends Optional ? Target | undefined | null :
-    Target | null :
+    T extends NotNullFacade<infer Target, any, any, any> ? Target :
+    T extends OptionalFacade<infer Target, any, any, any> ? Target | undefined | null :
+    T extends Schema<infer Target, any> ? Target | null :
     void
 
 /**
@@ -83,7 +81,7 @@ export type InferTargetFromSchema<T> =
  * ```
  * When you do:
  * ```ts
- * type Record = InferTargetFromDictionary<typeof recordS>
+ * type Record = InferTargetForDictionary<typeof recordS>
  * ```
  * Then it transforms `Record` to:
  * ```ts
@@ -125,7 +123,7 @@ export type InferSourceForDictionary<V extends Schema> = {
  */
 export type SchemaTarget<T extends SchemaDefinition> =
     {
-        [K in keyof T as T[K] extends RecursiveS ? never : T[K] extends Schema<any, any, Optional, any> ? never : K]: InferTargetFromSchema<T[K]>
+        [K in keyof T as T[K] extends RecursiveS ? never : T[K] extends OptionalFacade<any, any, any, any> ? never : K]: InferTargetFromSchema<T[K]>
     } & {
-        [K in keyof T as T[K] extends RecursiveS ? K : T[K] extends Schema<any, any, Optional, any> ? K : never]?: InferTargetFromSchema<T[K]>
+        [K in keyof T as T[K] extends RecursiveS ? K : T[K] extends OptionalFacade<any, any, any, any> ? K : never]?: InferTargetFromSchema<T[K]>
     }

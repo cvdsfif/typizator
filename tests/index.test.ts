@@ -855,7 +855,6 @@ describe("Testing type unboxing", () => {
         expect(() => apiS({
             meow: { args: [], retVal: stringS.notNull, hidden: true },
             child: {
-                // @ts-expect-error invalid field name is rejected at compile time
                 guau: { args: [], retval: stringS.notNull }
             }
         })).toThrow("Invalid field retval in child/guau")
